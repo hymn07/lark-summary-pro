@@ -11,11 +11,11 @@ export const metadata: Metadata = {
 		template: `%s | ${config.appName}`,
 	},
 	description:
-		"Flowmail turns your inbox into actionable workflows. AI-powered email classification, one-click approvals, and MCP-native agent integration.",
+		"以飞书为入口的 AI 会议纪要自动生成工具。开完会，纪要自动出现在指定文件夹里。",
 	openGraph: {
 		title: config.appName,
 		description:
-			"Stop reading emails. Start executing. Flowmail automates approvals, reports, and tasks from your inbox.",
+			"开完会，纪要自动出现在文件夹里。AI 会议纪要自动生成，开源自部署。",
 		siteName: config.appName,
 	},
 };
