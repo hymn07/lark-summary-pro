@@ -26,7 +26,7 @@ export const protectedProcedure = publicProcedure.use(
 
 export const adminProcedure = protectedProcedure.use(
 	async ({ context, next }) => {
-		if (context.user.role !== "admin") {
+		if (context.user.role !== "admin" && !(context.user as Record<string, unknown>).isAdmin) {
 			throw new ORPCError("FORBIDDEN");
 		}
 
