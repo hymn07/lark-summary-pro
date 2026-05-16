@@ -17,6 +17,7 @@ import {
   admin,
   createAuthMiddleware,
   emailOTP,
+  genericOAuth,
   openAPI,
   organization,
   twoFactor,
@@ -106,6 +107,11 @@ export const auth = betterAuth({
         type: "string",
         required: false,
       },
+      isAdmin: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+      },
     },
     deleteUser: {
       enabled: true,
@@ -167,6 +173,56 @@ export const auth = betterAuth({
     username(),
     admin(),
     passkey(),
+    genericOAuth({
+      config: [
+        {
+          providerId: "lark",
+          clientId: process.env.FEISHU_APP_ID as string,
+          clientSecret: process.env.FEISHU_APP_SECRET as string,
+          authorizationUrl: "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+          tokenUrl: "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
+          userInfoUrl: "https://open.feishu.cn/open-apis/authen/v1/user_info",
+          scopes: ["auth:user.id:read", "offline_access"],
+          redirectURI: process.env.FEISHU_REDIRECT_URI as string,
+          authentication: "post",
+          getToken: async ({ code, redirectURI }) => {
+            const url = new URL("https://open.feishu.cn/open-apis/authen/v2/oauth/token");
+            url.searchParams.set("client_id", process.env.FEISHU_APP_ID!);
+            url.searchParams.set("client_secret", process.env.FEISHU_APP_SECRET!);
+            url.searchParams.set("grant_type", "authorization_code");
+            url.searchParams.set("code", code);
+            url.searchParams.set("redirect_uri", redirectURI);
+
+            const res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json; charset=utf-8" },
+            });
+            const data = await res.json();
+
+            // 兼容两种返回格式
+            const tokenData = data.data ?? data;
+            return {
+              accessToken: tokenData.access_token,
+              refreshToken: tokenData.refresh_token,
+              expiresIn: tokenData.expires_in ?? 7200,
+            };
+          },
+          getUserInfo: async (tokens) => {
+            const res = await fetch("https://open.feishu.cn/open-apis/authen/v1/user_info", {
+              headers: { Authorization: `Bearer ${tokens.accessToken}` },
+            });
+            const data = await res.json();
+            const userData = data.data ?? data;
+            return {
+              id: userData.user_id ?? userData.open_id ?? userData.union_id,
+              name: userData.name ?? "",
+              email: userData.email ?? `${userData.user_id}@feishu.local`,
+              emailVerified: true,
+            };
+          },
+        },
+      ],
+    }),
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
         await sendEmail({

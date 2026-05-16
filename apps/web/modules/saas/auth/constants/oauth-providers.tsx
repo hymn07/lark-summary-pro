@@ -29,6 +29,22 @@ export const oAuthProviders = {
 			</svg>
 		),
 	},
+	lark: {
+		name: "飞书",
+		icon: ({ ...props }: IconProps) => (
+			<svg viewBox="0 0 24 24" aria-hidden {...props}>
+				<title>飞书</title>
+				<path
+					fill="#3370FF"
+					d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"
+				/>
+				<path
+					fill="white"
+					d="M7.5 8.5h3.5l-2 7H5.5l2-7zm5.5 0h3.5l-2 7H11l2-7z"
+				/>
+			</svg>
+		),
+	},
 } as const satisfies Record<
 	string,
 	{
