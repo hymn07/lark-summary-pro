@@ -11,25 +11,35 @@
   - Prompt 版本管理 + 举一反三（用户看不到核心 Prompt 原文，只能通过样本和自然语言间接影响）
   - 成员管理双模式：开放模式（全员自动可用）vs 审批模式（管理员手动白名单）
   - 前置路由：小模型先判断排除规则和提取特殊要求，再组装 Prompt 发给主力模型
-- 完整方案见 `.claude/plans/enumerated-zooming-moore.md`
+- 完整方案见 `docs/DESIGN.md`
 
 ### 项目文档初始化 - 2026-05-16
-- 做了什么：更新 CLAUDE.md（项目名+背景+Git 规则）、README.md（产品描述）、PROGRESS.md
-- 实现要点：CLAUDE.md 包含项目背景段，方便新对话快速理解上下文
+- 做了什么：更新 CLAUDE.md（项目名+背景+Git 规则）、README.md（产品描述）、PROGRESS.md、删除 agents.md 并入 CLAUDE.md
+- 实现要点：CLAUDE.md 包含项目背景段、完整导入约定、提交前自查清单
+
+### 数据库建表 - 2026-05-16
+- 做了什么：在 Prisma schema 中添加 8 个业务 Model（PromptVersion、MeetingRecord、ModelProvider、UserModelAccess、UserSettings、SystemConfig、ProcessingLog、SampleLearning），扩展 User 表增加 isAdmin 字段
+- 实现要点：
+  - 清理了 User 和 Organization 中引用 Flowmail 残留模型的无效关联
+  - 新增 MeetingRecordStatus 枚举（processing/completed/skipped/failed）
+  - 核心 Prompt 用 @db.Text 存储（后续加密）
+  - 用户偏好字段用 Json（exclusionRules、specialRequirements、models、sampleDocTokens）
+  - 修复了 @repo/logs 缺失导致的 pnpm install 失败
+  - 移除了 apps/web 中 @ai-eyes/* 残留依赖
 
 ---
 
 ## 🔄 进行中
 
-_无_
+### 核心业务逻辑 — 处理流水线
+- 创建 `packages/lark-meeting/` 业务包
+- 实现飞书事件处理 → 参会人路由 → 前置路由 → Prompt 组装 → LLM 生成 → 文档创建的完整链路
 
 ---
 
 ## 📋 待做
 
-- [ ] 数据库建表（8 个业务 Model → Prisma schema → migrate）
 - [ ] 飞书集成（事件监听 + 获取逐字稿 + 创建文档）
-- [ ] 核心流水线（参会人路由 → 前置路由 → Prompt 组装 → LLM 生成）
 - [ ] API 层（oRPC + MCP Tool）
 - [ ] 前端页面（Dashboard / 设置 / Prompt 管理 / 管理后台）
 - [ ] 飞书 OAuth 登录
@@ -38,4 +48,5 @@ _无_
 
 ## ⚠️ 已知问题
 
-_（开发过程中发现的问题记录在这里）_
+- **@ai-eyes 残留引用**：`apps/web/modules/saas/shared/components/AppWrapper.tsx` 仍引用了 `@ai-eyes/core`，需要后续重构或删除该组件
+- **数据库未实际创建**：Prisma schema 已验证通过，但未执行 push/migrate（需 Docker PostgreSQL 运行后执行）
