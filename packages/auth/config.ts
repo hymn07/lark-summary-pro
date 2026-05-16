@@ -23,13 +23,13 @@ export const config = {
 	// Users
 	users: {
 		// Whether you want the user to go through an onboarding form after signup (can be defined in the OnboardingForm.tsx)
-		enableOnboarding: true,
+		enableOnboarding: false,
 	},
 
 	// Organizations
 	organizations: {
 		// Whether organizations are enabled in general
-		enable: true,
+		enable: false,
 
 		// Whether the organization should be hidden from the user (use this for multi-tenant applications)
 		hideOrganization: false,
