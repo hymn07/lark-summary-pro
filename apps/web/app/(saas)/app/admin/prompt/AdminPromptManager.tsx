@@ -56,10 +56,10 @@ export function AdminPromptManager({
         body = { name: newName, corePrompt: manualPrompt, styleDescription: styleDesc || null };
       }
 
-      const res = await fetch("/api/rpc/", {
+      const res = await fetch("/api/rpc/larkAdmin/prompt/setDefault", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: "/larkAdmin/prompt/setDefault", body }),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       console.log("Prompt 创建响应:", json);
