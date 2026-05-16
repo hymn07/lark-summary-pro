@@ -11,6 +11,7 @@ Hono + oRPC + TanStack Query + react-hook-form + zod + Stripe + Resend + MinIO
 完整规范见 rules/01-技术栈规范.md
 
 ## 你必须先读
+- **docs/DESIGN.md** — 项目设计方案（产品定位、数据库模型、处理流程、API、页面）
 - **rules/00-AI协作原则.md** — 你的角色、提问的时机和方式
 - **PROGRESS.md** — 项目当前状态，上次做到哪了
 
@@ -69,7 +70,7 @@ import { CheckCircleIcon, ClockIcon } from "lucide-react";
 ## 项目背景
 
 - **产品定位**：AI 自动生成飞书会议纪要，单租户自部署
-- **完整设计方案**：见 `.claude/plans/enumerated-zooming-moore.md`
+- **完整设计方案**：见 `docs/DESIGN.md`
 - **核心链路**：飞书事件 → 拉取逐字稿 → 参会人路由 → 前置过滤 → LLM 生成 → 创建文档
 - **用户角色**：管理员（成员管理 + 模型配置 + 默认 Prompt）+ 普通用户（开关/保存位置/排除规则/Prompt 版本）
 - **关键决策**：单租户（无 organizationId）、长连接接收事件、Prompt 加密存储用户不可见、一场会议 N 个内部参与者 → N 份独立纪要
