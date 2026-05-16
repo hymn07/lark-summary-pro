@@ -516,6 +516,9 @@ importers:
       '@repo/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@repo/lark-meeting':
+        specifier: workspace:*
+        version: link:../lark-meeting
       '@repo/logs':
         specifier: workspace:*
         version: link:../logs
@@ -686,6 +689,28 @@ importers:
         specifier: ^24.10.1
         version: 24.10.1
 
+  packages/lark-meeting:
+    dependencies:
+      '@repo/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../database
+      ai:
+        specifier: ^6.0.0
+        version: 6.0.184(zod@4.4.3)
+      zod:
+        specifier: ^4.3.6
+        version: 4.4.3
+    devDependencies:
+      '@repo/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/logs: {}
 
   packages/mail:
@@ -745,6 +770,28 @@ importers:
       '@types/react':
         specifier: 19.2.3
         version: 19.2.3
+
+  packages/mcp-server:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.27.1
+        version: 1.29.0(zod@4.4.3)
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../database
+      '@repo/lark-meeting':
+        specifier: workspace:*
+        version: link:../lark-meeting
+      zod:
+        specifier: ^4.3.6
+        version: 4.4.3
+    devDependencies:
+      '@repo/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   packages/payments:
     dependencies:
