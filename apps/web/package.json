@@ -1,9 +1,5 @@
 {
 	"dependencies": {
-		"@ai-eyes/ai": "workspace:*",
-		"@ai-eyes/core": "workspace:*",
-		"@ai-eyes/panel": "workspace:*",
-		"@ai-eyes/react": "workspace:*",
 		"@ai-sdk/openai": "^3.0.48",
 		"@ai-sdk/react": "^3.0.0",
 		"@aws-sdk/client-s3": "3.437.0",
@@ -19,7 +15,7 @@
 		"@repo/auth": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/i18n": "workspace:*",
-		"@repo/logs": "workspace:*",
+
 		"@repo/mail": "workspace:*",
 		"@repo/payments": "workspace:*",
 		"@repo/storage": "workspace:*",

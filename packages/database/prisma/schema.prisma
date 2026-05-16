@@ -32,6 +32,7 @@ model User {
   locale             String?
   displayUsername     String?
   twoFactorEnabled   Boolean?
+  isAdmin            Boolean         @default(false)
   sessions           Session[]
   accounts           Account[]
   passkeys           Passkey[]
@@ -39,10 +40,12 @@ model User {
   purchases          Purchase[]
   members            Member[]
   twofactors         TwoFactor[]
-  assignedEntities   FlowEntity[]    @relation("AssignedEntities")
-  timelineActions    TimelineEvent[] @relation("TimelineActor")
-  notifications      Notification[]  @relation("UserNotifications")
-  createdEntityViews EntityView[]    @relation("EntityViewCreator")
+  promptVersions     PromptVersion[]
+  meetingRecords     MeetingRecord[]
+  userModelAccesses  UserModelAccess[]
+  createdProviders   ModelProvider[]
+  userSettings       UserSettings?
+  sampleLearnings    SampleLearning[]
 
   @@unique([email])
   @@unique([username])
@@ -149,17 +152,6 @@ model Organization {
   members             Member[]
   invitations         Invitation[]
   purchases           Purchase[]
-  emailConnections    EmailConnection[]
-  emailThreads        EmailThread[]
-  inboundEmails       InboundEmail[]
-  flowEntities        FlowEntity[]
-  categories          Category[]
-  tags                Tag[]
-  apiTokens           ApiToken[]
-  notifications       Notification[]
-  agentMemories       AgentMemory[]
-  memoryObjects       MemoryObject[]
-  entityViews         EntityView[]
 
   @@unique([slug])
   @@map("organization")
@@ -221,6 +213,142 @@ model Purchase {
   @@map("purchase")
 }
 
+enum MeetingRecordStatus {
+  processing
+  completed
+  skipped
+  failed
+}
+
+model PromptVersion {
+  id               String            @id @default(cuid())
+  name             String
+  corePrompt       String            @db.Text
+  styleDescription String?
+  isDefault        Boolean           @default(false)
+  isActive         Boolean           @default(false)
+  createdById      String
+  createdBy        User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  meetingRecords   MeetingRecord[]
+  userSettings     UserSettings[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([createdById])
+  @@map("prompt_version")
+}
+
+model MeetingRecord {
+  id               String              @id @default(cuid())
+  meetingId        String
+  topic            String?
+  startTime        DateTime?
+  endTime          DateTime?
+  hostUserId       String?
+  participantCount Int?
+  status           MeetingRecordStatus @default(processing)
+  promptVersionId  String?
+  promptVersion    PromptVersion?      @relation(fields: [promptVersionId], references: [id], onDelete: SetNull)
+  docUrl           String?
+  docToken         String?
+  skippedReason    String?
+  aiSummary        String?             @db.Text
+  errorMessage     String?             @db.Text
+  userId           String
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processingLogs   ProcessingLog[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([startTime])
+  @@index([userId, status])
+  @@map("meeting_record")
+}
+
+model ModelProvider {
+  id        String   @id @default(cuid())
+  name      String
+  apiBase   String
+  apiKey    String
+  models    Json     @default("[]")
+  createdById String
+  createdBy User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  userAccesses UserModelAccess[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("model_provider")
+}
+
+model UserModelAccess {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modelProviderId String
+  modelProvider   ModelProvider @relation(fields: [modelProviderId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, modelProviderId])
+  @@index([userId])
+  @@index([modelProviderId])
+  @@map("user_model_access")
+}
+
+model UserSettings {
+  id                    String         @id @default(cuid())
+  userId                String         @unique
+  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  autoEnabled           Boolean        @default(true)
+  saveFolderToken       String?
+  exclusionRules        Json           @default("[]")
+  specialRequirements   Json           @default("[]")
+  activePromptVersionId String?
+  activePromptVersion   PromptVersion? @relation(fields: [activePromptVersionId], references: [id], onDelete: SetNull)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@map("user_settings")
+}
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model ProcessingLog {
+  id              String        @id @default(cuid())
+  meetingRecordId String
+  meetingRecord   MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
+  step            String
+  status          String
+  detail          String?       @db.Text
+  createdAt       DateTime      @default(now())
+
+  @@index([meetingRecordId])
+  @@map("processing_log")
+}
+
+model SampleLearning {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  sampleDocTokens  Json     @default("[]")
+  generatedPrompt  String   @db.Text
+  styleDescription String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+  @@map("sample_learning")
+}
+
 model WaitlistEntry {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -228,5 +356,3 @@ model WaitlistEntry {
 
   @@map("waitlist_entry")
 }
-
-
