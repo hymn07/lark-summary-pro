@@ -1,0 +1,20 @@
+{
+	"dependencies": {
+		"@aws-sdk/client-s3": "3.437.0",
+		"@aws-sdk/s3-request-presigner": "3.437.0",
+		"@repo/logs": "workspace:*"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.13",
+		"@repo/tsconfig": "workspace:*",
+		"@types/node": "^24.10.1"
+	},
+	"main": "./index.ts",
+	"name": "@repo/storage",
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"type-check": "tsc --noEmit"
+	},
+	"types": "./**/.ts",
+	"version": "0.0.0"
+}

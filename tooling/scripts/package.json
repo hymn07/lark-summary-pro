@@ -1,0 +1,23 @@
+{
+	"dependencies": {
+		"@repo/auth": "workspace:*",
+		"@repo/database": "workspace:*",
+		"@repo/logs": "workspace:*",
+		"@repo/utils": "workspace:*"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.13",
+		"@repo/tsconfig": "workspace:*",
+		"@types/node": "^24.10.1",
+		"nanoid": "^5.1.6",
+		"tsx": "^4.20.6"
+	},
+	"name": "@repo/scripts",
+	"private": true,
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"create:user": "dotenv -c -e ../../.env -- tsx ./src/create-user.ts",
+		"type-check": "tsc --noEmit"
+	},
+	"version": "0.0.0"
+}

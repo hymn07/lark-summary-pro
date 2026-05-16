@@ -1,0 +1,25 @@
+{
+	"extends": "../../tooling/typescript/nextjs.json",
+	"compilerOptions": {
+		"plugins": [{ "name": "next" }],
+		"paths": {
+			"@/*": ["./*"],
+			"@analytics": ["./modules/analytics"],
+			"@marketing/*": ["./modules/marketing/*"],
+			"@saas/*": ["./modules/saas/*"],
+			"@i18n": ["./modules/i18n"],
+			"@i18n/*": ["./modules/i18n/*"],
+			"@shared/*": ["./modules/shared/*"],
+			"@app/*": ["./modules/flowmail/*"],
+			"content-collections": ["./.content-collections/generated"]
+		}
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		"**/*.cjs",
+		"**/*.mjs",
+		".next/types/**/*.ts"
+	],
+	"exclude": ["node_modules"]
+}

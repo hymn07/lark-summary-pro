@@ -1,0 +1,46 @@
+---
+title: Flowmail Documentation
+description: Learn how to use Flowmail to turn your emails into executable business workflows with AI-powered classification, extraction, and automation.
+---
+
+Welcome to the Flowmail documentation. Here you'll find everything you need to get started and make the most of the platform.
+
+## What is Flowmail?
+
+Flowmail is an **AI-native business execution platform** that sits on top of your email inbox. It automatically classifies incoming emails, extracts structured business data, and enables you to take action — all without leaving a single interface.
+
+## Core Concepts
+
+- **Smart Inbox** — Your emails organized by business type: Approvals, Reports, Issues, and more
+- **Entities** — Structured business items extracted from emails with full timeline tracking
+- **Actions** — One-click operations: approve, reject, update status, assign, and follow up
+- **AI Pipeline** — Automatic classification and data extraction with human-in-the-loop confirmation
+
+## Getting Started
+
+1. [Create your account](/docs/getting-started/overview) and set up your organization
+2. Connect your email (Gmail or Outlook) via secure OAuth
+3. Start processing emails — Flowmail's AI will classify and extract data automatically
+4. Review AI suggestions and take action
+
+## Scenarios
+
+### Approval Workflows
+Turn approval request emails into trackable items. See who's asking, what they need, and when it's due. Approve or reject with a single click.
+
+### Report Tracking
+Automatically extract progress updates from team reports. Track status changes over time and get alerted when risks are detected.
+
+## Architecture
+
+Flowmail exposes two API layers for maximum flexibility:
+
+- **oRPC** — Type-safe RPC for the web UI (used by the dashboard)
+- **MCP Server** — Model Context Protocol for AI agent integration (used by Claude, GPT, Cursor, and other agents)
+
+Both layers share the same core business logic, ensuring consistency across all interfaces.
+
+## Need Help?
+
+- Check our [Getting Started guide](/docs/getting-started/overview)
+- Reach out at support@example.com

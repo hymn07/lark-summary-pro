@@ -1,0 +1,10 @@
+{
+	"extends": "../../tooling/typescript/react-library.json",
+	"include": ["**/*.ts", "**/*.tsx"],
+	"exclude": ["dist", "build", "node_modules"],
+	"compilerOptions": {
+		"paths": {
+			"@/*": ["./*"]
+		}
+	}
+}

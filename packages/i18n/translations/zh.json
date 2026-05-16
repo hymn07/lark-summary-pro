@@ -1,0 +1,622 @@
+{
+	"common": {
+		"menu": {
+			"blog": "博客",
+			"dashboard": "控制台",
+			"docs": "文档",
+			"faq": "常见问题",
+			"features": "功能",
+			"login": "登录",
+			"security": "安全"
+		},
+		"confirmation": {
+			"cancel": "取消",
+			"confirm": "确认"
+		},
+		"actions": {
+			"continue": "继续",
+			"verify": "验证"
+		},
+		"colorMode": {
+			"system": "跟随系统",
+			"light": "浅色",
+			"dark": "深色"
+		},
+		"footer": {
+			"blog": "博客",
+			"features": "功能",
+			"privacy": "隐私政策",
+			"security": "安全",
+			"terms": "服务条款"
+		}
+	},
+	"auth": {
+		"branding": {
+			"headline": "别再整理邮件了，\n直接执行。",
+			"subtitle": "Flowmail 自动将邮件转化为可执行工作流 — 审批、汇报、任务，全自动处理。",
+			"feature1": "AI 智能邮件分类",
+			"feature2": "一键审批工作流",
+			"feature3": "MCP 原生 Agent 集成"
+		},
+		"errors": {
+			"invalidEmailOrPassword": "账号或密码不正确，请检查后重试。",
+			"unknown": "出了点问题，请稍后重试。",
+			"userNotFound": "该用户不存在。",
+			"failedToCreateUser": "无法创建用户，请重试。",
+			"failedToCreateSession": "无法创建会话，请重试。",
+			"failedToUpdateUser": "无法更新用户，请重试。",
+			"failedToGetSession": "无法获取会话。",
+			"invalidPassword": "密码不正确。",
+			"invalidEmail": "邮箱格式无效。",
+			"invalidToken": "令牌无效或已过期。",
+			"credentialAccountNotFound": "未找到账号。",
+			"emailCanNotBeUpdated": "无法更新邮箱，请重试。",
+			"emailNotVerified": "请先验证邮箱后再登录。",
+			"failedToGetUserInfo": "无法加载用户信息。",
+			"idTokenNotSupported": "不支持 ID Token。",
+			"passwordTooLong": "密码过长。",
+			"passwordTooShort": "密码过短。",
+			"providerNotFound": "不支持该登录方式。",
+			"socialAccountAlreadyLinked": "该社交账号已绑定到其他用户。",
+			"userEmailNotFound": "未找到该邮箱。",
+			"userAlreadyExists": "该用户已存在。",
+			"userAlreadyExistsUseAnotherEmail": "用户已存在，请使用其他邮箱。",
+			"invalidInvitation": "邀请无效或已过期。",
+			"invalidInviteCode": "邀请码无效或未填写。如需开通请联系我们。",
+			"sessionExpired": "会话已过期。",
+			"failedToUnlinkLastAccount": "无法解绑最后一个账号。",
+			"accountNotFound": "未找到账号。",
+			"tooManyRequests": "操作过于频繁，请稍后再试。"
+		},
+		"login": {
+			"title": "欢迎回来",
+			"subtitle": "请输入你的账号信息登录。",
+			"submit": "登录",
+			"forgotPassword": "忘记密码？",
+			"dontHaveAnAccount": "还没有账号？",
+			"createAnAccount": "创建账号",
+			"continueWith": "或通过以下方式继续",
+			"loginWithPasskey": "使用 Passkey 登录",
+			"modes": {
+				"emailOtp": "验证码",
+				"password": "密码"
+			},
+			"sendOtp": "发送验证码"
+		},
+		"signup": {
+			"title": "创建账号",
+			"message": "很高兴你加入我们。请填写以下信息来创建你的账号。",
+			"name": "姓名",
+			"email": "邮箱",
+			"password": "密码",
+			"submit": "创建账号",
+			"alreadyHaveAccount": "已有账号？",
+			"signIn": "登录",
+			"inviteCode": "邀请码",
+			"inviteCodePlaceholder": "请输入邀请码",
+			"inviteCodeRequired": "请填写邀请码。",
+			"passwordTooShort": "密码至少 8 位。"
+		},
+		"forgotPassword": {
+			"title": "忘记密码？",
+			"message": "请输入你的邮箱，我们将发送重置密码的链接。",
+			"email": "邮箱",
+			"submit": "发送链接",
+			"backToSignin": "返回登录"
+		},
+		"resetPassword": {
+			"title": "重置密码",
+			"message": "请输入新密码。",
+			"newPassword": "新密码",
+			"submit": "重置密码",
+			"backToSignin": "返回登录"
+		},
+		"verifyOtp": {
+			"title": "输入验证码",
+			"code": "验证码",
+			"submit": "验证并登录",
+			"backToSignin": "返回登录",
+			"message": "我们已向 {email} 发送了 6 位验证码。",
+			"resend": "重新发送",
+			"resendCountdown": "{seconds} 秒后可重新发送"
+		}
+	},
+	"faq": {
+		"title": "常见问题",
+		"description": "关于把邮件转化为执行，你需要知道的一切。",
+		"items": {
+			"q1": "Flowmail 是什么？",
+			"a1": "Flowmail 可以把邮件自动转化为结构化、可执行的工作流。你不再需要手动阅读和整理邮件，它会自动提取审批、汇报和关键信息，让你可以立即行动。",
+			"q2": "Flowmail 如何连接我的邮箱？",
+			"a2": "Flowmail 通过 OAuth 安全连接 Gmail、Outlook 等邮箱服务。你可以自主选择授权范围，并随时撤销访问权限。",
+			"q3": "Flowmail 能对邮件做什么？",
+			"a3": "Flowmail 可以自动分类邮件，提取结构化信息（如审批、进展），并让你或你的 agent 直接执行操作，比如审批或跟踪进度。",
+			"q4": "支持哪些 agent？",
+			"a4": "任何兼容 MCP 的 agent 都可以接入 Flowmail，包括 Claude、Workbuddy 或你自定义的 agent。",
+			"q5": "我的邮件数据安全吗？",
+			"a5": "是的。Flowmail 只会访问你明确授权的数据，且不会在未经允许的情况下用于模型训练，你始终拥有数据控制权。",
+			"q6": "需要改变现有工作流程吗？",
+			"a6": "不需要。邮件仍然照常收发，Flowmail 只是把它们转化为结构化、可执行的流程。"
+		}
+	},
+	"hero": {
+		"badge1": "AI 驱动",
+		"badge2": "Agent 原生",
+		"headline": "上次漏掉重要邮件，是什么时候？",
+		"subtitle": "Flowmail 用 AI 自动分类每封邮件，为每个业务事项建立时间线，并在截止日期前主动提醒你 — 收件箱里的事，一件不漏。",
+		"subtitle2": "工作仍然通过邮件到达，而 Flowmail 让它真正被执行。",
+		"cta": "免费开始",
+		"docs": "查看文档",
+		"tagline": "从收件箱，到执行，全自动。",
+		"invite_code_placeholder": "邀请码",
+		"invite_email_placeholder": "你的邮箱",
+		"invite_cta": "去注册",
+		"invite_submitting": "校验中…",
+		"invite_error": "邀请码无效，请检查后重试。",
+		"invite_has_account": "已有账号？"
+	},
+	"howItWorks": {
+		"label": "如何使用",
+		"title": "三步，从邮件到执行",
+		"description": "连接收件箱，让 AI 为你处理一切。",
+		"step1": {
+			"title": "连接",
+			"description": "一键接入 Gmail、Outlook、飞书或任何 IMAP 邮箱。"
+		},
+		"step2": {
+			"title": "理解",
+			"description": "AI 自动分类邮件、提取关键字段、创建结构化事项。"
+		},
+		"step3": {
+			"title": "执行",
+			"description": "审批请求、追踪汇报、触发操作 — 全在一处完成。"
+		}
+	},
+	"metrics": {
+		"speed": "处理速度",
+		"speedValue": "< 3s",
+		"accuracy": "分类准确率",
+		"accuracyValue": "98.5%",
+		"platforms": "邮箱平台",
+		"platformsValue": "6+",
+		"encryption": "加密标准",
+		"encryptionValue": "AES-256"
+	},
+	"notifications": {
+		"label": "智能通知",
+		"title": "不再遗忘。我们主动提醒你。",
+		"description": "Flowmail 持续监控每个业务事项，在事情遗漏之前主动提醒你。",
+		"approval": {
+			"title": "审批超时提醒",
+			"description": "审批请求接近截止日期仍未处理时，Flowmail 自动通过邮件和 IM 提醒审批人 — 不再有过期的审批。"
+		},
+		"anomaly": {
+			"title": "汇报异常预警",
+			"description": "当状态报告中出现阻塞、目标未达或风险信号时，Flowmail 立即通知相关人员，让问题被及早处理。"
+		},
+		"timeline": {
+			"title": "时间线变更通知",
+			"description": "每一次状态变化 — 批准、拒绝、升级、完成 — 都会实时推送到你的邮箱和团队频道。"
+		}
+	},
+	"bottomCta": {
+		"title": "把邮件变成可执行的业务结果",
+		"subtitle": "30 秒连接你的邮箱，让 AI 完成其余工作。",
+		"waitlistTitle": "抢先体验"
+	},
+	"features": {
+		"label": "核心场景",
+		"title": "两个最重要的工作流",
+		"description": "Flowmail 专注于消耗邮件时间最多的两个场景：审批和汇报跟踪。",
+		"inbox": {
+			"title": "自动分流收件箱",
+			"subtitle": "AI 自动将邮件分类为可执行事项。",
+			"description": "Flowmail 使用 AI 自动将邮件分类为审批、汇报、问题等可执行事项，无需人工整理。",
+			"b1": "智能分类",
+			"b1d": "AI 读取每封来信，自动识别为审批、汇报、问题或反馈 — 附带置信度评分。",
+			"b2": "零人工整理",
+			"b2d": "不再需要文件夹、标签或规则。Flowmail 理解邮件意图，自动路由到正确的工作流。",
+			"b3": "持续学习",
+			"b3d": "分类精度随使用而提升，Flowmail 会不断学习你团队的邮件模式和用语习惯。"
+		},
+		"actions": {
+			"title": "审批一次，全链路执行",
+			"subtitle": "一键触发完整执行链。",
+			"description": "审批通过后，Flowmail 自动发确认邮件、创建日历事件、通知 Slack 或飞书。不用在多个应用间来回复制。",
+			"b1": "一键审批",
+			"b1d": "在统一面板中查看提取的详情（金额、发起人、截止日期），一键批准或拒绝，完整审计追踪。",
+			"b2": "自动回复 & 日历",
+			"b2d": "审批通过后，Flowmail 自动发送确认邮件并创建日历事件。无需手动跟进。",
+			"b3": "IM 通知",
+			"b3d": "审批结果自动推送到 Slack、飞书或 Teams 频道。让团队随时掌握进展。"
+		},
+		"insights": {
+			"title": "把报告自动变成任务",
+			"subtitle": "一步完成提取、分析和创建跟进。",
+			"description": "Flowmail 从状态邮件中提取进展、阻塞、负责人和下一步，然后在 Linear、Jira 或 Notion 中创建任务 — 确保没有遗漏。",
+			"b1": "结构化提取",
+			"b1d": "关键要点、已完成事项、阻塞和下一步 — 从自由文本邮件提取为结构化字段。",
+			"b2": "自动创建任务",
+			"b2d": "阻塞和待办事项自动转为 Linear、Jira 或 Notion 工单，分配给对应负责人。",
+			"b3": "趋势追踪",
+			"b3d": "自动对比本周和上周报告，提前发现风险，追踪解决率，一眼看清项目健康度。"
+		},
+		"agents": {
+			"title": "让 agent 跑通整条流水线",
+			"subtitle": "MCP 工具覆盖分类、审批和执行。",
+			"description": "Flowmail 提供覆盖全生命周期的 MCP 工具 — 分类、审批、创建日历、分配任务、发通知。任何兼容的 agent 都可以端到端运行。",
+			"b1": "全生命周期工具",
+			"b1d": "不只是只读。Agent 可以审批请求、创建事件、分配任务、发送通知 — 通过 Flowmail 的 MCP Server。",
+			"b2": "兼容所有 agent",
+			"b2d": "Claude、Workbuddy、OpenClaw 或你自己的 agent。只要支持 MCP，就能端到端操作 Flowmail。",
+			"b3": "人在回路",
+			"b3d": "Agent 处理日常流程，人工审核边界情况。置信度评分确保没有任何遗漏。"
+		},
+		"demo": {
+			"incoming": "收到的邮件",
+			"classifying": "分类中",
+			"aiClassifying": "AI 分类中",
+			"inbox1from": "finance@acme.co",
+			"inbox1subject": "Q2 预算审批申请",
+			"inbox2from": "eng-lead@acme.co",
+			"inbox2subject": "工程团队周报",
+			"inbox3from": "devops@acme.co",
+			"inbox3subject": "CI 流水线故障告警",
+			"inbox4from": "procurement@acme.co",
+			"inbox4subject": "供应商合同续签",
+			"tagApproval": "审批",
+			"tagReport": "汇报",
+			"tagIssue": "问题",
+			"approvalTitle": "Q2 预算申请",
+			"approvalFrom": "finance@acme.co",
+			"approvalUrgency": "紧急",
+			"approved": "已批准",
+			"executing": "执行中",
+			"execEmail": "确认邮件已发送至 finance@acme.co",
+			"execCalendar": "事件：预算评审，3月31日 14:00",
+			"execSlack": "已发布到飞书 #approvals 频道",
+			"execSummary": "3 个动作已完成，耗时 1.8 秒",
+			"terminalCmd": "$ flowmail process --type report",
+			"terminalReading": "> 读取中：\"工程团队周报\"",
+			"terminalExtracting": "> 正在提取字段...",
+			"terminalStatus": "✓ 状态：正常推进",
+			"terminalBlockers": "✓ 阻塞：CI 超时、API 限流",
+			"terminalNextSteps": "✓ 下一步：已提取 3 项",
+			"terminalCreating": "> 正在 Linear 中创建任务...",
+			"terminalTask1": "✓ LINEAR-142：修复 CI 流水线超时 → @sarah",
+			"terminalTask2": "✓ LINEAR-143：排查 API 限流问题 → @mike",
+			"terminalTask3": "✓ LINEAR-144：更新预发环境配置 → @alex",
+			"terminalDone": "完成。已在 Linear 创建 3 个任务。",
+			"reportsProcessed": "已处理报告",
+			"onTrack": "进展正常",
+			"blockersFound": "发现阻塞",
+			"tasksCreated": "已创建任务",
+			"mcpServer": "MCP 服务器",
+			"mcpProtocol": "MCP 协议 · 任何 Agent",
+			"agent1": "Claude",
+			"agent2": "Workbuddy",
+			"agent3": "OpenClaw",
+			"exec1": "邮箱",
+			"exec2": "日历",
+			"exec3": "飞书",
+			"exec4": "钉钉",
+			"action1": "Claude → 列出待审批项",
+			"action2": "Workbuddy → 审批请求 #42",
+			"action3": "OpenClaw → 创建日历事件",
+			"action4": "Claude → 通知飞书 #approvals"
+		}
+	},
+	"security": {
+		"label": "企业级安全",
+		"title": "您的数据安全无虞",
+		"description": "Flowmail 采用安全优先架构，通过行业标准加密、严格访问控制和全面审计日志保护您的邮件数据。",
+		"features": {
+			"encryption": {
+				"title": "AES-256 加密",
+				"description": "所有敏感凭证——OAuth 令牌、IMAP 密码和 API 密钥——均使用 AES-256-GCM 加密存储。"
+			},
+			"accessControl": {
+				"title": "基于角色的访问控制",
+				"description": "组织级隔离与角色权限管理，每个 API 请求均经过认证和授权。"
+			},
+			"auditLog": {
+				"title": "完整审计日志",
+				"description": "每项敏感操作——审批、状态变更、令牌使用——均记录时间戳、操作者和 IP 地址。"
+			},
+			"rateLimiting": {
+				"title": "速率限制",
+				"description": "所有认证端点内置智能速率限制，有效防止暴力破解攻击。"
+			},
+			"headers": {
+				"title": "安全响应头",
+				"description": "HSTS、CSP、X-Frame-Options 和严格引用策略可防御 XSS、点击劫持和注入攻击。"
+			},
+			"mfa": {
+				"title": "多因素认证",
+				"description": "支持 Passkey、TOTP 双因素认证和邮箱 OTP 验证，全方位保护您的账户安全。"
+			}
+		},
+		"badge1": "AES-256 加密",
+		"badge2": "OAuth 2.0 授权",
+		"badge3": "全操作审计",
+		"badge4": "零数据训练",
+		"badge5": "GDPR Ready",
+		"badge6": "TLS 传输加密",
+		"page": {
+			"hero": {
+				"title": "安全、可靠、私密。",
+				"description": "Flowmail 的每一层设计都以保护您的数据安全为核心。因为您的业务只属于您。"
+			},
+			"dataSecurity": {
+				"title": "数据安全",
+				"description": "您的邮件数据在每一层都受到行业标准加密和安全基础设施的保护。",
+				"items": {
+					"encryptionAtRest": {
+						"title": "静态加密",
+						"description": "所有敏感凭证——OAuth 令牌、IMAP 密码和 API 密钥——在存储前均使用 AES-256-GCM 加密。"
+					},
+					"encryptionInTransit": {
+						"title": "传输加密",
+						"description": "所有连接强制使用 HTTPS 和 TLS 1.2+。每个响应都强制执行严格的安全头（HSTS、CSP）。"
+					},
+					"oauthSecurity": {
+						"title": "OAuth 2.0 授权",
+						"description": "我们通过 OAuth 2.0 连接 Gmail 和 Outlook——绝不查看或存储您的邮箱密码。您可以随时撤销授权。"
+					}
+				}
+			},
+			"accessControl": {
+				"title": "访问控制",
+				"description": "细粒度权限和多因素认证保护每一个账户。",
+				"items": {
+					"mfa": {
+						"title": "多因素认证",
+						"description": "邮箱 OTP 和 Passkey 为所有用户账户提供强双因素认证。"
+					},
+					"orgIsolation": {
+						"title": "组织隔离",
+						"description": "每个组织的数据严格隔离，跨租户访问在架构层面不可能发生。"
+					},
+					"apiTokens": {
+						"title": "API 令牌管理",
+						"description": "API 令牌在存储前使用 SHA-256 哈希。令牌可设定作用域并随时撤销。"
+					},
+					"rateLimiting": {
+						"title": "速率限制",
+						"description": "所有认证端点均受滑动窗口速率限制保护，防止暴力破解攻击。"
+					}
+				}
+			},
+			"aiPrivacy": {
+				"title": "AI 与隐私",
+				"description": "我们相信您的邮件数据属于您——而非 AI 模型提供商。",
+				"items": {
+					"zeroTraining": {
+						"title": "零数据训练",
+						"description": "您的邮件内容绝不会被用于训练、微调或改进 AI 模型。我们对 AI 提供商执行零数据留存策略。"
+					},
+					"minimalAccess": {
+						"title": "最小数据访问",
+						"description": "AI 仅处理分类和抽取所需的特定字段。原始邮件内容不会在处理后被留存。"
+					},
+					"transparency": {
+						"title": "处理透明",
+						"description": "每个 AI 分类和抽取结果都对您可见。您可以在任何 AI 生成的结果生效前审查、修正或拒绝。"
+					}
+				}
+			},
+			"compliance": {
+				"title": "合规与透明",
+				"description": "我们通过严格的内部控制和透明的数据处理实践保护您的权益。",
+				"items": {
+					"gdpr": {
+						"title": "GDPR Ready",
+						"description": "我们遵循 GDPR 核心原则：数据最小化、目的限制和数据主体权利。支持数据导出和删除，可应要求提供数据处理协议（DPA）。"
+					},
+					"zeroTraining": {
+						"title": "零数据训练承诺",
+						"description": "您的邮件内容绝不会被用于训练或改进 AI 模型。我们对所有 AI 提供商执行零数据留存策略。"
+					},
+					"auditLog": {
+						"title": "全面审计日志",
+						"description": "所有敏感操作——审批、连接变更、令牌管理——均记录操作者、时间戳和 IP 地址。"
+					},
+					"dataExport": {
+						"title": "数据可携性",
+						"description": "您可以随时导出或删除您的数据。我们尊重您的数据可携权和删除权。"
+					}
+				}
+			},
+			"infrastructure": {
+				"title": "基础设施",
+				"description": "Flowmail 运行在企业级基础设施上，内置冗余和全球性能保障。",
+				"items": {
+					"hosting": {
+						"title": "Vercel 托管",
+						"description": "部署在 Vercel 全球边缘网络上，自动 DDoS 防护、SSL 证书和 99.99% SLA 可用性保障。"
+					},
+					"database": {
+						"title": "托管 PostgreSQL",
+						"description": "数据存储在 Neon 无服务器 PostgreSQL 中，自动备份、时间点恢复和静态加密。"
+					},
+					"securityHeaders": {
+						"title": "安全响应头",
+						"description": "每个响应包含 HSTS、Content-Security-Policy、X-Frame-Options、X-Content-Type-Options 和严格 Referrer-Policy。"
+					}
+				}
+			},
+			"cta": {
+				"title": "有安全方面的问题？",
+				"description": "我们非常重视安全。如果您对我们的安全实践有疑问或需要数据处理协议，请联系我们。",
+				"email": "联系安全团队"
+			}
+		}
+	},
+	"newsletter": {
+		"email": "邮箱",
+		"hints": {
+			"error": {
+				"message": "订阅失败，请稍后重试。"
+			},
+			"success": {
+				"message": "订阅成功！我们会及时推送新功能和产品更新。",
+				"title": "已订阅"
+			}
+		},
+		"submit": "订阅",
+		"subtitle": "了解 Flowmail 的最新功能，以及如何把邮件转化为可执行工作流。",
+		"title": "获取最新动态"
+	},
+	"pricing": {
+		"title": "定价",
+		"description": "选择最适合你的方案。",
+		"choosePlan": "选择方案",
+		"contactSales": "联系销售",
+		"getStarted": "开始使用",
+		"monthly": "月付",
+		"yearly": "年付",
+		"recommended": "推荐",
+		"subscribe": "订阅",
+		"purchase": "购买",
+		"products": {
+			"free": {
+				"title": "免费版",
+				"description": "免费开始使用"
+			},
+			"basic": {
+				"title": "基础版",
+				"description": "适合小团队"
+			},
+			"pro": {
+				"title": "专业版",
+				"description": "适合团队协作"
+			},
+			"enterprise": {
+				"title": "企业版",
+				"description": "为你的需求量身定制"
+			},
+			"lifetime": {
+				"title": "终身版",
+				"description": "一次购买，永久使用"
+			}
+		}
+	},
+	"contact": {
+		"title": "联系我们",
+		"description": "我们随时为你提供帮助，请使用下方表单联系我们。",
+		"form": {
+			"name": "姓名",
+			"email": "邮箱",
+			"message": "留言",
+			"submit": "发送消息",
+			"notifications": {
+				"success": "你的消息已发送成功，我们会尽快回复。",
+				"error": "消息发送失败，请稍后重试。"
+			}
+		}
+	},
+	"settings": {
+		"save": "保存",
+		"account": {
+			"title": "账号设置",
+			"subtitle": "管理你的个人账号设置。"
+		},
+		"billing": {
+			"title": "账单"
+		},
+		"menu": {
+			"account": {
+				"title": "账号",
+				"general": "通用",
+				"security": "安全",
+				"billing": "账单",
+				"dangerZone": "危险区域"
+			},
+			"organization": {
+				"title": "组织",
+				"general": "通用",
+				"members": "成员",
+				"billing": "账单",
+				"dangerZone": "危险区域"
+			}
+		}
+	},
+	"organizations": {
+		"settings": {
+			"title": "组织",
+			"subtitle": "管理组织设置。"
+		},
+		"organizationSelect": {
+			"organizations": "组织",
+			"personalAccount": "个人账号",
+			"createNewOrganization": "创建新组织"
+		},
+		"roles": {
+			"owner": "所有者",
+			"admin": "管理员",
+			"member": "成员"
+		}
+	},
+	"start": {
+		"subtitle": "查看你的业务最新状态。",
+		"welcome": "欢迎 {name}！"
+	},
+	"onboarding": {
+		"title": "设置你的账号",
+		"message": "只需几步即可开始使用。",
+		"continue": "继续",
+		"step": "步骤 {step} / {total}"
+	},
+	"notFound": {
+		"code": "404",
+		"title": "页面未找到",
+		"goToDashboard": "前往控制台",
+		"goToHomepage": "返回首页"
+	},
+	"setupGuide": {
+		"title": "快速开始",
+		"completedTitle": "设置完成！",
+		"completedMessage": "一切就绪，开始使用 Flowmail",
+		"dismiss": "知道了",
+		"progress": "{completed}/{total}",
+		"steps": {
+			"connectEmail": "连接邮箱",
+			"connectEmailHint": "进入「邮箱连接」页面，点击「连接邮箱」完成 OAuth 授权",
+			"configureCategories": "配置分类规则",
+			"configureCategoriesHint": "进入「分类管理」页面，点击「新建分类」添加 AI 分类规则",
+			"processFirstEmail": "处理第一封邮件",
+			"processFirstEmailHint": "在「收件箱」中查看 AI 自动解析的邮件事项",
+			"checkNotifications": "查看通知中心",
+			"checkNotificationsHint": "点击右上角铃铛查看系统提醒"
+		}
+	},
+	"productTour": {
+		"inbox": {
+			"title": "① 智能收件箱",
+			"description": "邮箱连接后，AI 会自动分析每封邮件，提取审批、汇报等业务事项，全部展示在这里。点击任何事项即可查看详情和完整时间线。"
+		},
+		"connections": {
+			"title": "② 连接你的邮箱",
+			"description": "点击这里进入邮箱连接页面。支持 Gmail、飞书、钉钉、企微等多种邮箱。只需一次 OAuth 授权，Flowmail 就会自动同步和处理你的邮件。"
+		},
+		"categories": {
+			"title": "③ 自定义分类规则",
+			"description": "进入分类管理，创建你自己的分类。每个分类可以设置 AI 提示词，比如「识别所有审批请求邮件」。AI 会根据你的规则自动将邮件分到对应类别。"
+		},
+		"notifications": {
+			"title": "④ 智能提醒中心",
+			"description": "Flowmail 会在审批截止、汇报逾期等关键节点主动通知你。点击铃铛随时查看所有提醒，确保不漏掉任何重要事项。"
+		},
+		"next": "下一步",
+		"prev": "上一步",
+		"done": "开始使用！",
+		"skip": "跳过引导"
+	},
+	"aiEyes": {
+		"helpAccept": "帮我解决",
+		"helpDismiss": "不需要",
+		"panelTitle": "AI 助手",
+		"panelSubtitle": "我注意到你可能需要帮助",
+		"placeholder": "有什么可以帮你的？"
+	}
+}

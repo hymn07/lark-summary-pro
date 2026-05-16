@@ -1,0 +1,129 @@
+import {
+	GetObjectCommand,
+	PutObjectCommand,
+	S3Client,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl as getS3SignedUrl } from "@aws-sdk/s3-request-presigner";
+import { logger } from "@repo/logs";
+import { config } from "../../config";
+import type {
+	GetSignedUploadUrlHandler,
+	GetSignedUrlHander,
+	UploadObjectHandler,
+} from "../../types";
+
+let s3Client: S3Client | null = null;
+
+const getS3Client = () => {
+	if (s3Client) {
+		return s3Client;
+	}
+
+	const s3Endpoint = process.env.S3_ENDPOINT as string;
+	if (!s3Endpoint) {
+		throw new Error("Missing env variable S3_ENDPOINT");
+	}
+
+	const s3Region = (process.env.S3_REGION as string) || "auto";
+
+	const s3AccessKeyId = process.env.S3_ACCESS_KEY_ID as string;
+	if (!s3AccessKeyId) {
+		throw new Error("Missing env variable S3_ACCESS_KEY_ID");
+	}
+
+	const s3SecretAccessKey = process.env.S3_SECRET_ACCESS_KEY as string;
+	if (!s3SecretAccessKey) {
+		throw new Error("Missing env variable S3_SECRET_ACCESS_KEY");
+	}
+
+	s3Client = new S3Client({
+		region: s3Region,
+		endpoint: s3Endpoint,
+		forcePathStyle: true,
+		credentials: {
+			accessKeyId: s3AccessKeyId,
+			secretAccessKey: s3SecretAccessKey,
+		},
+	});
+
+	return s3Client;
+};
+
+export const getSignedUploadUrl: GetSignedUploadUrlHandler = async (
+	path,
+	{ bucket },
+) => {
+	const bucketName =
+		config.bucketNames[bucket as keyof typeof config.bucketNames];
+
+	const s3Client = getS3Client();
+	try {
+		return await getS3SignedUrl(
+			s3Client,
+			new PutObjectCommand({
+				Bucket: bucketName,
+				Key: path,
+				ContentType: "image/jpeg",
+			}),
+			{
+				expiresIn: 60,
+			},
+		);
+	} catch (e) {
+		logger.error(e);
+
+		throw new Error("Could not get signed upload url");
+	}
+};
+
+export const uploadObject: UploadObjectHandler = async (
+	path,
+	body,
+	{ bucket, contentType },
+) => {
+	const bucketName =
+		config.bucketNames[bucket as keyof typeof config.bucketNames];
+
+	if (!bucketName) {
+		throw new Error("Invalid bucket");
+	}
+
+	const s3Client = getS3Client();
+	try {
+		await s3Client.send(
+			new PutObjectCommand({
+				Bucket: bucketName,
+				Key: path,
+				Body: body,
+				ContentType: contentType ?? "application/octet-stream",
+			}),
+		);
+	} catch (e) {
+		logger.error(e);
+		throw new Error("Could not upload object to storage");
+	}
+};
+
+export const getSignedUrl: GetSignedUrlHander = async (
+	path,
+	{ bucket, expiresIn },
+) => {
+	const bucketName =
+		config.bucketNames[bucket as keyof typeof config.bucketNames];
+
+	if (!bucketName) {
+		throw new Error("Invalid bucket");
+	}
+
+	const s3Client = getS3Client();
+	try {
+		return getS3SignedUrl(
+			s3Client,
+			new GetObjectCommand({ Bucket: bucketName, Key: path }),
+			{ expiresIn },
+		);
+	} catch (e) {
+		logger.error(e);
+		throw new Error("Could not get signed url");
+	}
+};
