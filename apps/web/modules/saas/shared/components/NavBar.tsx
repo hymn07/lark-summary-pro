@@ -15,6 +15,7 @@ import {
   SparklesIcon,
   ShieldIcon,
   PanelLeftCloseIcon,
+  VideoIcon,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -36,6 +37,12 @@ export function NavBar() {
   };
 
   const menuItems: MenuItem[] = [
+    {
+      label: "会议记录",
+      href: "/app/meetings",
+      icon: VideoIcon,
+      isActive: pathname.startsWith("/app/meetings"),
+    },
     {
       label: "会议纪要",
       href: "/app",

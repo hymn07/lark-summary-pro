@@ -118,6 +118,12 @@ export const SampleLearningScalarFieldEnumSchema = z.enum(['id', 'userId', 'name
 
 export type SampleLearningScalarFieldEnum = z.infer<typeof SampleLearningScalarFieldEnumSchema>;
 
+// File: FeishuMeetingScalarFieldEnum.schema.ts
+
+export const FeishuMeetingScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'meetingNo', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'transcriptText', 'transcriptFetched', 'docUrl', 'createdAt', 'updatedAt'])
+
+export type FeishuMeetingScalarFieldEnum = z.infer<typeof FeishuMeetingScalarFieldEnumSchema>;
+
 // File: WaitlistEntryScalarFieldEnum.schema.ts
 
 export const WaitlistEntryScalarFieldEnumSchema = z.enum(['id', 'email', 'createdAt'])
@@ -467,6 +473,27 @@ export const SampleLearningSchema = z.object({
 });
 
 export type SampleLearningType = z.infer<typeof SampleLearningSchema>;
+
+
+// File: FeishuMeeting.schema.ts
+
+export const FeishuMeetingSchema = z.object({
+  id: z.string(),
+  meetingId: z.string(),
+  meetingNo: z.string().nullish(),
+  topic: z.string().nullish(),
+  startTime: z.date().nullish(),
+  endTime: z.date().nullish(),
+  hostUserId: z.string().nullish(),
+  participantCount: z.number().int().nullish(),
+  transcriptText: z.string().nullish(),
+  transcriptFetched: z.boolean(),
+  docUrl: z.string().nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type FeishuMeetingType = z.infer<typeof FeishuMeetingSchema>;
 
 
 // File: WaitlistEntry.schema.ts

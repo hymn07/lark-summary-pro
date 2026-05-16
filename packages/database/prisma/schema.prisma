@@ -241,6 +241,7 @@ model PromptVersion {
 model MeetingRecord {
   id               String              @id @default(cuid())
   meetingId        String
+  feishuMeeting    FeishuMeeting?     @relation(fields: [meetingId], references: [meetingId])
   topic            String?
   startTime        DateTime?
   endTime          DateTime?
@@ -347,6 +348,27 @@ model SampleLearning {
 
   @@index([userId])
   @@map("sample_learning")
+}
+
+model FeishuMeeting {
+  id              String   @id @default(cuid())
+  meetingId       String   @unique
+  meetingNo       String?
+  topic           String?
+  startTime       DateTime?
+  endTime         DateTime?
+  hostUserId      String?
+  participantCount Int?
+  transcriptText  String?  @db.Text
+  transcriptFetched Boolean @default(false)
+  docUrl          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  meetingRecords  MeetingRecord[]
+
+  @@index([startTime])
+  @@index([meetingId])
+  @@map("feishu_meeting")
 }
 
 model WaitlistEntry {
