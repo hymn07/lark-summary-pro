@@ -1,10 +1,9 @@
-# [项目名]
+# lark-summary-pro
 
-> CLAUDE.md 是 Claude Code 的入口文件。每次新对话开始时，Claude 会自动读取。
-> 初始化脚本会将 [项目名] 替换为实际项目名称。
+> 每次新对话开始时，Claude 会自动读取本文件。项目设计决策记录在方案文件中。
 
 ## 项目
-[一句话描述。初始化时替换]
+以飞书为入口的 AI 会议纪要自动生成工具 —— 开完会，纪要自动出现在指定文件夹里。
 
 ## 技术栈
 Next.js 16 + TypeScript + Prisma + PostgreSQL + better-auth + shadcn/ui + Tailwind CSS
@@ -67,5 +66,35 @@ import { CheckCircleIcon, ClockIcon } from "lucide-react";
 - 开始做什么 → 加到「进行中」
 - 发现了什么 bug/技术债 → 加到「已知问题」，修完了就移除
 
+## 项目背景
+
+- **产品定位**：AI 自动生成飞书会议纪要，单租户自部署
+- **完整设计方案**：见 `.claude/plans/enumerated-zooming-moore.md`
+- **核心链路**：飞书事件 → 拉取逐字稿 → 参会人路由 → 前置过滤 → LLM 生成 → 创建文档
+- **用户角色**：管理员（成员管理 + 模型配置 + 默认 Prompt）+ 普通用户（开关/保存位置/排除规则/Prompt 版本）
+- **关键决策**：单租户（无 organizationId）、长连接接收事件、Prompt 加密存储用户不可见、一场会议 N 个内部参与者 → N 份独立纪要
+
 ## 项目特定规则
-<!-- 初始化后或开发过程中追加业务特定规则 -->
+
+### Git 提交规则
+
+- **自主判断**：完成一个独立功能单元后，自动提交。不需要问我要不要 commit
+- **提交格式**：Conventional Commits
+  ```
+  feat: 添加xxx功能
+  fix: 修复xxx问题
+  refactor: 重构xxx
+  chore: 初始化/配置/依赖更新
+  docs: 更新文档
+  test: 添加测试
+  ```
+- **标题**：类型用英文（feat/fix/chore...），描述用中文
+- **Body**：用中文写简要说明（做了什么、为什么这样做）
+- **示例**：
+  ```
+  feat: 添加会议纪要自动生成流水线
+
+  实现从飞书事件接收到文档创建的五步处理链路：
+  前置路由 → Prompt组装 → LLM生成 → 文档创建 → 日志记录。
+  支持排除规则和特殊要求的前置过滤。
+  ```
