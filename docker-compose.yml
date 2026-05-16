@@ -1,12 +1,12 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: lark-summary-postgres
+    container_name: lark-summary-pro-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: supastarter
+      POSTGRES_DB: lark_summary_pro
     ports:
       - "5432:5432"
     volumes:
@@ -19,7 +19,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: lark-summary-minio
+    container_name: lark-summary-pro-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -38,7 +38,7 @@ services:
 
   minio-setup:
     image: minio/mc:latest
-    container_name: lark-summary-minio-setup
+    container_name: lark-summary-pro-minio-setup
     depends_on:
       minio:
         condition: service_healthy
