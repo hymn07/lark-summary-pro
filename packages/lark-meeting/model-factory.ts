@@ -25,7 +25,7 @@ export async function getFastModel(): Promise<LanguageModel> {
   });
 
   const modelName = findModelName(provider.models as string[], "flash");
-  const model = client(modelName);
+  const model = client.chat(modelName);
   if (!model) throw new Error(`模型 ${modelName} 不可用`);
 
   _fastModel = model;
@@ -48,7 +48,7 @@ export async function getTextModel(): Promise<LanguageModel> {
   });
 
   const modelName = findModelName(provider.models as string[], "pro");
-  const model = client(modelName);
+  const model = client.chat(modelName);
   if (!model) throw new Error(`模型 ${modelName} 不可用`);
 
   _proModel = model;
