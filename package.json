@@ -1,9 +1,10 @@
 {
-	"name": "flowmail",
+	"name": "lark-summary-pro",
 	"private": true,
 	"scripts": {
 		"build": "dotenv -c -- turbo build",
-		"dev": "dotenv -c -- turbo dev --concurrency 15",
+		"dev": "dotenv -c -- turbo dev --concurrency 15 --filter=web --filter=@repo/database",
+		"dev:full": "dotenv -c -- turbo dev --concurrency 15",
 		"type-check": "dotenv -c -- turbo type-check",
 		"start": "dotenv -c -- turbo start",
 		"lint": "biome lint",
