@@ -5,6 +5,7 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.0",
     "@repo/ai": "workspace:*",
     "@repo/database": "workspace:*",
     "ai": "^6.0.0",

@@ -691,6 +691,9 @@ importers:
 
   packages/lark-meeting:
     dependencies:
+      '@ai-sdk/openai':
+        specifier: ^3.0.0
+        version: 3.0.64(zod@4.4.3)
       '@repo/ai':
         specifier: workspace:*
         version: link:../ai

@@ -7,5 +7,7 @@ export { assemblePrompt } from "./prompt-assembler";
 export { generateMinutes } from "./llm-generator";
 export { createFeishuDoc } from "./doc-creator";
 export { learnFromSamples } from "./sample-learner";
+export { getTenantAccessToken } from "./feishu-client";
+export { getFastModel, getTextModel } from "./model-factory";
 export * from "./config-reader";
 export * from "./types";

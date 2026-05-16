@@ -1,4 +1,5 @@
 import type { MeetingDetail, MeetingParticipant } from "./types";
+import { getTenantAccessToken } from "./feishu-client";
 
 // 调用飞书 API 获取会议详情和逐字稿
 // 使用 tenant_access_token（应用身份），可拉取企业内任意会议
@@ -59,11 +60,4 @@ export async function fetchTranscriptContent(docToken: string): Promise<string |
   } catch {
     return null;
   }
-}
-
-// 获取 tenant_access_token
-// TODO: 需要从 SystemConfig 中读取 feishu_app_id 和 feishu_app_secret
-async function getTenantAccessToken(): Promise<string | null> {
-  // 留空：需要用户提供飞书应用凭证后实现
-  return null;
 }

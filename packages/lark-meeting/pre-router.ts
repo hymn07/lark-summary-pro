@@ -1,6 +1,7 @@
-import { generateObject, type LanguageModel } from "ai";
+import { generateObject } from "ai";
 import { z } from "zod";
 import type { MeetingDetail, PipelineContext, PreRouteResult } from "./types";
+import { getFastModel } from "./model-factory";
 
 // 前置路由：用小模型判断排除规则 + 提取特殊要求
 export async function runPreRoute(
@@ -41,9 +42,4 @@ ${settings.specialRequirements.map((r, i) => `${i + 1}. 话题：${r.topic} → 
   } catch {
     return { shouldSkip: false };
   }
-}
-
-// TODO: 从 SystemConfig 读取模型提供商配置后实现
-async function getFastModel(): Promise<LanguageModel> {
-  throw new Error("模型未配置：请在管理后台添加 LLM 提供商");
 }

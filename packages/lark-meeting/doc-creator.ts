@@ -1,4 +1,5 @@
 import type { PipelineContext, MeetingMinutes } from "./types";
+import { getTenantAccessToken } from "./feishu-client";
 
 // 在用户指定文件夹创建飞书文档并写入纪要内容
 export async function createFeishuDoc(
@@ -131,9 +132,4 @@ function formatMinutesAsBlocks(minutes: MeetingMinutes) {
   }
 
   return blocks;
-}
-
-async function getTenantAccessToken(): Promise<string | null> {
-  // TODO: 需要从 SystemConfig 读取 feishu_app_id 和 feishu_app_secret
-  return null;
 }

@@ -1,5 +1,6 @@
-import { generateObject, type LanguageModel } from "ai";
+import { generateObject } from "ai";
 import { z } from "zod";
+import { getTextModel } from "./model-factory";
 
 // 举一反三：从 1-3 篇示例纪要中学习风格，生成核心 Prompt
 export async function learnFromSamples(
@@ -33,9 +34,4 @@ ${sampleTexts}`,
     corePrompt: result.object.corePrompt,
     styleDescription: result.object.styleDescription,
   };
-}
-
-async function getTextModel(): Promise<LanguageModel> {
-  // TODO: 从 SystemConfig 读取模型提供商配置
-  throw new Error("模型未配置：请在管理后台添加 LLM 提供商");
 }
