@@ -1,5 +1,4 @@
-import { generateObject } from "ai";
-import { z } from "zod";
+import { generateText } from "ai";
 import type { MeetingDetail, PipelineContext, PreRouteResult } from "./types";
 import { getFastModel } from "./model-factory";
 
@@ -14,14 +13,9 @@ export async function runPreRoute(
   }
 
   try {
-    const result = await generateObject({
+    const { text } = await generateText({
       model: await getFastModel(),
-      schema: z.object({
-        shouldSkip: z.boolean(),
-        skipReason: z.string().optional(),
-        extractedRequirements: z.string().optional(),
-      }),
-      prompt: `你是一个会议纪要的预处理器。根据用户的排除规则和特殊要求，判断是否需要跳过一个会议，并提取特殊需求。
+      prompt: `你是一个会议纪要的预处理器。请判断会议是否需要跳过，以及有什么特殊要求。
 
 会议信息：
 - 标题：${detail.topic ?? "未知"}
@@ -34,11 +28,19 @@ ${settings.exclusionRules.map((r, i) => `${i + 1}. ${r}`).join("\n") || "无"}
 用户特殊要求：
 ${settings.specialRequirements.map((r, i) => `${i + 1}. 话题：${r.topic} → 重点关注：${r.focus}`).join("\n") || "无"}
 
-请判断：
-1. 该会议是否命中排除规则？如果命中，说明原因
-2. 如果没有排除，用户的特殊要求中有哪些与本次会议相关？提炼出应该注入到会议纪要 prompt 中的具体要求`,
+请只输出一个 JSON 对象（不要其他文字）：
+{"shouldSkip": true/false, "skipReason": "跳过原因（如果跳过）", "extractedRequirements": "提取出的特殊要求（如果不跳过）"}`,
     });
-    return result.object;
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return { shouldSkip: false };
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      shouldSkip: parsed.shouldSkip === true,
+      skipReason: parsed.skipReason,
+      extractedRequirements: parsed.extractedRequirements,
+    };
   } catch {
     return { shouldSkip: false };
   }
