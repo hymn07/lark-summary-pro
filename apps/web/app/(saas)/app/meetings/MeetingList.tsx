@@ -42,7 +42,8 @@ export function MeetingList() {
 
       {meetings.length === 0 ? (
         <p className="text-gray-500 text-center py-8">
-          暂无会议记录。需要先开通飞书搜索权限 (vc:meeting.search:read) 并重新登录。
+          暂无会议记录。会议数据来自飞书推送的"会议结束"事件。<br/>
+          也可在管理后台 → 流水线测试中使用 mock 模式测试。
         </p>
       ) : (
         meetings.map((m: Record<string, unknown>) => (

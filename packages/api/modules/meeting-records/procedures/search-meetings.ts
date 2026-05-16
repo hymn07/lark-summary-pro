@@ -12,26 +12,7 @@ export const listFeishuMeetings = protectedProcedure
     tags: ["Meeting Records"],
     summary: "获取飞书会议列表",
   })
-  .handler(async ({ context }) => {
-    // 先返回缓存
-    const cached = await getCachedMeetings(50);
-
-    // 在后台尝试同步最新会议（需要 user token）
-    try {
-      const account = await db.account.findFirst({
-        where: { userId: context.user.id, providerId: "lark" },
-      });
-      if (account?.accessToken) {
-        const meetings = await searchMeetings(account.accessToken, 20);
-        for (const m of meetings) {
-          await cacheMeeting(m);
-        }
-      }
-    } catch {
-      // 后台同步失败不影响返回
-    }
-
-    // 重新获取（包含新同步的）
+  .handler(async () => {
     return getCachedMeetings(50);
   });
 

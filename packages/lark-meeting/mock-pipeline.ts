@@ -80,6 +80,22 @@ export async function runMockPipeline(topic: string) {
     }
     console.log(`[MockPipeline] Step 4 完成: ${JSON.stringify(minutes, null, 2)}`);
 
+    // 缓存到 FeishuMeeting
+    await db.feishuMeeting.upsert({
+      where: { meetingId: detail.id },
+      update: { topic: detail.topic, transcriptText: MOCK_TRANSCRIPT, transcriptFetched: true },
+      create: {
+        meetingId: detail.id,
+        topic: detail.topic,
+        startTime: detail.startTime ? new Date(Number(detail.startTime) * 1000) : new Date(),
+        endTime: detail.endTime ? new Date(Number(detail.endTime) * 1000) : new Date(),
+        transcriptText: MOCK_TRANSCRIPT,
+        transcriptFetched: true,
+        hostUserId: "mock",
+        participantCount: detail.participantCount,
+      },
+    });
+
     return { status: "completed", minutes };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "未知错误";
