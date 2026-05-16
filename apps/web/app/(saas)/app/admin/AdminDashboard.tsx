@@ -35,7 +35,7 @@ export function AdminDashboard() {
     setTestLoading(true);
     setTestResult(null);
     try {
-      const res = await fetch("/api/rpc", {
+      const res = await fetch("/api/rpc/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: "/larkAdmin/test/pipeline", body: { meetingId: testMeetingId } }),

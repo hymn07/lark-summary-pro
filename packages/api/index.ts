@@ -58,11 +58,11 @@ export const app = new Hono()
 			headers: c.req.raw.headers,
 		};
 
-		const isRpc = c.req.path.includes("/rpc/");
+		const isRpc = c.req.path.includes("/rpc/") || c.req.path.endsWith("/rpc");
 
 		const handler = isRpc ? rpcHandler : openApiHandler;
 
-		const prefix = isRpc ? "/api/rpc" : "/api";
+		const prefix = "/api/rpc";
 
 		const { matched, response } = await handler.handle(c.req.raw, {
 			prefix,
