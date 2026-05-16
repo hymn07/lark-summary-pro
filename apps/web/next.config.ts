@@ -120,12 +120,7 @@ const nextConfig: NextConfig = {
 	},
 	async redirects() {
 		return [
-				{
-				source: "/app/:organizationSlug/settings",
-				destination: "/app/:organizationSlug/settings/general",
-				permanent: true,
-			},
-		];
+				];
 	},
 	webpack: (config, { webpack, isServer }) => {
 		config.plugins.push(

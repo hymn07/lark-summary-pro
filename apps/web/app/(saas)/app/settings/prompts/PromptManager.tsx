@@ -29,7 +29,7 @@ export function PromptManager() {
       onSuccess: (data: Record<string, unknown>) => {
         toast.success(`风格版本 "${data.name}" 已创建`);
         setShowCreate(false); setNewName(""); setSamples(["", "", ""]); setManualPrompt(""); setStyleDesc("");
-        queryClient.invalidateQueries({ queryKey: ["prompts", "list"] });
+        queryClient.invalidateQueries({ queryKey: orpc.prompts.list.queryKey() });
       },
       onError: (e) => { console.error(e); toast.error("创建失败"); },
     }),
@@ -37,13 +37,13 @@ export function PromptManager() {
 
   const deleteMutation = useMutation(
     orpc.prompts.delete.mutationOptions({
-      onSuccess: () => { toast.success("已删除"); queryClient.invalidateQueries({ queryKey: ["prompts", "list"] }); },
+      onSuccess: () => { toast.success("已删除"); queryClient.invalidateQueries({ queryKey: orpc.prompts.list.queryKey() }); },
     }),
   );
 
   const activateMutation = useMutation(
     orpc.prompts.activate.mutationOptions({
-      onSuccess: () => { toast.success("已切换"); queryClient.invalidateQueries({ queryKey: ["prompts", "list"] }); },
+      onSuccess: () => { toast.success("已切换"); queryClient.invalidateQueries({ queryKey: orpc.prompts.list.queryKey() }); },
     }),
   );
 
