@@ -1,5 +1,6 @@
 "use client";
 
+import { orpcClient } from "@shared/lib/orpc-client";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
 import { Input } from "@repo/ui/components/input";
@@ -45,29 +46,18 @@ export function AdminPromptManager({
     }
     setLoading(true);
     try {
-      let body: Record<string, unknown>;
+      let data: { id: string; name: string; styleDescription: string | null };
 
       if (createMode === "ai") {
         const validSamples = samples.filter((s) => s.trim());
         if (validSamples.length === 0) { toast.error("请粘贴或上传至少一篇示例"); setLoading(false); return; }
-        body = { name: newName, sampleContents: validSamples };
+        data = await orpcClient.larkAdmin.prompt.setDefault({ name: newName, sampleContents: validSamples });
       } else {
         if (!manualPrompt.trim()) { toast.error("请填写 Prompt 内容"); setLoading(false); return; }
-        body = { name: newName, corePrompt: manualPrompt, styleDescription: styleDesc || null };
+        data = await orpcClient.larkAdmin.prompt.setDefault({ name: newName, corePrompt: manualPrompt, styleDescription: styleDesc || null });
       }
 
-      const res = await fetch("/api/rpc/larkAdmin/prompt/setDefault", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      console.log("Prompt 创建响应:", json);
-
-      if (json.error) throw new Error(json.error.message || JSON.stringify(json.error));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data = json.result ?? json;
+      console.log("Prompt 创建响应:", data);
       toast.success("默认 Prompt 已创建");
       setCurrent({ id: data.id, name: data.name, styleDescription: data.styleDescription });
       setShowCreate(false);

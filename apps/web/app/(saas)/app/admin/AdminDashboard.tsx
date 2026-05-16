@@ -1,6 +1,7 @@
 "use client";
 
 import { orpc } from "@shared/lib/orpc-query-utils";
+import { orpcClient } from "@shared/lib/orpc-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
@@ -35,18 +36,12 @@ export function AdminDashboard() {
     setTestLoading(true);
     setTestResult(null);
     try {
-      const res = await fetch("/api/rpc/larkAdmin/test/pipeline", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ meetingId: testMeetingId }),
-      });
-      const json = await res.json();
-      setTestResult(JSON.stringify(json, null, 2));
-      if (!json.error) toast.success("流水线执行完成，查看终端日志");
-      else toast.error("执行失败");
-    } catch (e) {
-      setTestResult(String(e));
-      toast.error("请求失败");
+      const result = await orpcClient.larkAdmin.test.pipeline({ meetingId: testMeetingId });
+      setTestResult(JSON.stringify(result, null, 2));
+      toast.success("流水线执行完成，查看终端日志");
+    } catch (e: unknown) {
+      setTestResult(e instanceof Error ? e.message : String(e));
+      toast.error("执行失败");
     } finally {
       setTestLoading(false);
     }
