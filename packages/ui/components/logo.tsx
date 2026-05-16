@@ -18,21 +18,21 @@ export function Logo({
 		>
 			<img
 				src="/logo-dark.png"
-				alt="Flowmail"
+				alt="Lark Summary Pro"
 				width={size}
 				height={size}
 				className="shrink-0 block dark:hidden"
 			/>
 			<img
 				src="/logo-light.png"
-				alt="Flowmail"
+				alt="Lark Summary Pro"
 				width={size}
 				height={size}
 				className="shrink-0 hidden dark:block"
 			/>
 			{withLabel && (
 				<span className="ml-2 text-base tracking-tight font-semibold">
-					Flowmail
+					Lark Summary Pro
 				</span>
 			)}
 		</span>

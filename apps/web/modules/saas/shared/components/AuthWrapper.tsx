@@ -72,7 +72,7 @@ export function AuthWrapper({
 						aria-hidden="true"
 						className="select-none pointer-events-none text-[clamp(4rem,8vw,8rem)] font-bold leading-none text-white/5"
 					>
-						Flowmail
+						Lark Summary Pro
 					</p>
 				</div>
 			</div>

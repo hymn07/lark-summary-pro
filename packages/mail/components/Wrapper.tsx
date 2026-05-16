@@ -84,12 +84,12 @@ export default function Wrapper({ children }: PropsWithChildren) {
 						<div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
 							<Img
 								src={`${baseUrl}/logo-dark.png`}
-								alt="Flowmail"
+								alt="Lark Summary Pro"
 								width={28}
 								height={28}
 							/>
 							<span style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.01em" }}>
-								Flowmail
+								Lark Summary Pro
 							</span>
 						</div>
 						{children}
