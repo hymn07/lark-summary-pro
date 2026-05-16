@@ -38,7 +38,7 @@ async function main() {
     await db.modelProvider.create({
       data: {
         name: "DeepSeek",
-        apiBase: "https://api.deepseek.com/chat/completions",
+        apiBase: "https://api.deepseek.com/v1",
         apiKey: "REDACTED",
         models: ["deepseek-v4-flash", "deepseek-v4-pro"],
         createdById: sysUser.id,
