@@ -18,11 +18,8 @@ export default async function AdminPromptPage() {
 
   return (
     <div>
-      <PageHeader
-        title="默认 Prompt"
-        subtitle="设置公司默认的会议纪要风格，所有成员的初始设置"
-      />
-      <AdminPromptManager initialPrompt={defaultPrompt} />
+      <PageHeader title="默认 Prompt" subtitle="设置公司默认的会议纪要风格" />
+      <AdminPromptManager initialPrompt={defaultPrompt as { id: string; name: string; styleDescription: string | null } | null} />
     </div>
   );
 }

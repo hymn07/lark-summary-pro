@@ -1,14 +1,11 @@
 "use client";
 
-import { orpc } from "@shared/lib/orpc-query-utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
 import { Badge } from "@repo/ui/components/badge";
-import { Skeleton } from "@repo/ui/components/skeleton";
 import { toast } from "sonner";
 import { Sparkles, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
@@ -16,45 +13,47 @@ import { useState } from "react";
 export function AdminPromptManager({
   initialPrompt,
 }: {
-  initialPrompt: { id: string; name: string; styleDescription: string | null; isActive: boolean } | null;
+  initialPrompt: { id: string; name: string; styleDescription: string | null } | null;
 }) {
-  const queryClient = useQueryClient();
-  const { data: prompt } = useQuery(
-    orpc.larkAdmin.prompt.getDefault.queryOptions(),
-    { initialData: initialPrompt },
-  );
-
+  const [current, setCurrent] = useState(initialPrompt);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [samples, setSamples] = useState(["", "", ""]);
+  const [loading, setLoading] = useState(false);
 
-  const createMutation = useMutation(
-    orpc.larkAdmin.prompt.setDefault.mutationOptions({
-      onSuccess: (data: Record<string, unknown>) => {
-        toast.success(`默认 Prompt "${data.name}" 已创建`);
-        setShowCreate(false);
-        setNewName("");
-        setSamples(["", "", ""]);
-        queryClient.invalidateQueries({ queryKey: ["larkAdmin", "prompt", "getDefault"] });
-      },
-      onError: () => toast.error("创建失败"),
-    }),
-  );
-
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const validSamples = samples.filter((s) => s.trim());
     if (!newName.trim() || validSamples.length === 0) {
       toast.error("请填写名称和至少一篇示例");
       return;
     }
-    createMutation.mutate({ name: newName, sampleContents: validSamples });
+    setLoading(true);
+    try {
+      const res = await fetch("/api/rpc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: "/larkAdmin/prompt/setDefault",
+          body: { name: newName, sampleContents: validSamples },
+        }),
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error.message);
+      const data = json.result ?? json;
+      toast.success("默认 Prompt 已创建");
+      setCurrent({ id: data.id, name: data.name, styleDescription: data.styleDescription });
+      setShowCreate(false);
+      setNewName("");
+      setSamples(["", "", ""]);
+    } catch (e) {
+      toast.error("创建失败");
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const current = prompt as { id: string; name: string; styleDescription: string | null; isActive: boolean } | null;
 
   return (
     <div className="space-y-6 max-w-2xl">
-      {/* 当前默认 Prompt */}
       {current ? (
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
@@ -86,11 +85,7 @@ export function AdminPromptManager({
             <h3 className="font-medium">举一反三 — 创建公司默认风格</h3>
             <div>
               <Label>版本名称</Label>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="如：标准版、详尽版"
-              />
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="如：标准版、详尽版" />
             </div>
             <div>
               <Label>上传 1-3 篇示例纪要</Label>
@@ -99,20 +94,16 @@ export function AdminPromptManager({
                   <p className="text-xs text-gray-400 mb-1">示例 {i + 1}</p>
                   <Textarea
                     value={sample}
-                    onChange={(e) => {
-                      const updated = [...samples];
-                      updated[i] = e.target.value;
-                      setSamples(updated);
-                    }}
+                    onChange={(e) => { const u = [...samples]; u[i] = e.target.value; setSamples(u); }}
                     placeholder={`粘贴第 ${i + 1} 篇...`}
                     rows={4}
                   />
                 </div>
               ))}
             </div>
-            <Button onClick={handleCreate} disabled={createMutation.isPending}>
+            <Button onClick={handleCreate} disabled={loading}>
               <Sparkles className="h-4 w-4 mr-1" />
-              {createMutation.isPending ? "生成中..." : "生成"}
+              {loading ? "生成中..." : "生成"}
             </Button>
           </CardContent>
         </Card>

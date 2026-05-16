@@ -1,20 +1,24 @@
 "use client";
 
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
 import { toast } from "sonner";
 import { Users, FileText, Cpu } from "lucide-react";
 import Link from "next/link";
 
 export function AdminDashboard() {
+  const queryClient = useQueryClient();
   const { data: systemConfig } = useQuery(
     orpc.larkAdmin.settings.get.queryOptions(),
   );
 
   const updateConfigMutation = useMutation(
     orpc.larkAdmin.settings.update.mutationOptions({
-      onSuccess: () => toast.success("模式已切换"),
+      onSuccess: () => {
+        toast.success("模式已切换");
+        queryClient.invalidateQueries({ queryKey: orpc.larkAdmin.settings.get.queryKey() });
+      },
     }),
   );
 
