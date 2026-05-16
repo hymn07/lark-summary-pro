@@ -14,66 +14,91 @@ export async function handleMeetingEnded(
   const meetingId = event.meeting.id;
   const results: ProcessResult[] = [];
 
-  // Step 1: 获取会议详情 + 逐字稿
+  const log = (msg: string) => console.log(`[Pipeline ${meetingId}] ${msg}`);
+
+  log(`收到事件: ${event.meeting.topic}`);
+
+  // Step 1: 获取会议详情
+  log("Step 1: 获取会议详情...");
   const detail = await fetchMeetingDetail(meetingId);
   if (!detail) {
+    log("Step 1 失败: 无法获取会议详情");
     await createProcessingLog(meetingId, "fetch_detail", "failed", "无法获取会议详情");
     return [];
   }
+  log(`Step 1 成功: 参会${detail.participantCount}人`);
 
-  // 非本企业会议或外部人主持 → 跳过
+  // 非本企业会议 → 跳过
   if (event.meeting.meetingSource !== 1) {
+    log(`跳过: meetingSource=${event.meeting.meetingSource}`);
     return [];
   }
 
-  // Step 1.5: 参会人路由 → 找出开了自动纪要的内部用户
+  // Step 1.5: 参会人路由
+  log("Step 1.5: 参会人路由...");
   const contexts = await routeParticipants(detail);
   if (contexts.length === 0) {
+    log("Step 1.5: 无匹配的内部用户");
     return [];
   }
+  log(`Step 1.5 成功: 匹配到 ${contexts.length} 个用户`);
 
   // Step 2-6: 对每个用户独立处理
   for (const ctx of contexts) {
+    const userLog = (msg: string) => log(`[用户${ctx.userId}] ${msg}`);
     try {
-      // Step 2: 前置路由（排除规则 + 特殊要求提取）
+      // Step 2: 前置路由
+      userLog("Step 2: 前置路由...");
       const preRoute = await runPreRoute(detail, ctx);
       if (preRoute.shouldSkip) {
+        userLog(`跳过: ${preRoute.skipReason}`);
         const record = await createMeetingRecord(ctx, detail, "skipped", null, preRoute.skipReason);
         results.push({ status: "skipped", meetingRecordId: record.id, skippedReason: preRoute.skipReason });
         continue;
       }
+      userLog("Step 2 完成");
 
       // Step 3: Prompt 组装
+      userLog("Step 3: Prompt 组装...");
       const prompt = await assemblePrompt(ctx, preRoute.extractedRequirements);
+      userLog("Step 3 完成");
 
       // Step 4: LLM 生成
+      userLog("Step 4: LLM 生成...");
       const minutes = await generateMinutes(detail, prompt);
       if (!minutes) {
+        userLog("Step 4 失败");
         await createMeetingRecord(ctx, detail, "failed", null, undefined, "LLM 生成失败");
         results.push({ status: "failed", errorMessage: "LLM 生成失败" });
         continue;
       }
+      userLog(`Step 4 完成: ${minutes.title}`);
 
       // Step 5: 创建飞书文档
+      userLog("Step 5: 创建飞书文档...");
       const docUrl = await createFeishuDoc(ctx, minutes);
       if (!docUrl) {
+        userLog("Step 5 失败");
         await createMeetingRecord(ctx, detail, "failed", null, undefined, "文档创建失败");
         results.push({ status: "failed", errorMessage: "文档创建失败" });
         continue;
       }
+      userLog(`Step 5 完成: ${docUrl}`);
 
       // Step 6: 记录成功
       const record = await createMeetingRecord(ctx, detail, "completed", docUrl);
       results.push({ status: "completed", meetingRecordId: record.id, docUrl });
+      userLog("Step 6 完成: 纪要已保存");
 
-      // Step 7: 后处理日志
       await createProcessingLog(record.id, "completed", "success", "纪要生成成功");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "未知错误";
+      log(`处理失败: ${errorMessage}`);
       await createMeetingRecord(ctx, detail, "failed", null, undefined, errorMessage);
       results.push({ status: "failed", errorMessage });
     }
   }
+  log(`完成: ${results.length} 条结果`);
 
   return results;
 }

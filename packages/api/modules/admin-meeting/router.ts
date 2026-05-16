@@ -2,6 +2,7 @@ import { listMembers, addMember, removeMember, updateMemberModels } from "./proc
 import { listProviders, createProvider, deleteProvider } from "./procedures/model-providers";
 import { getSystemConfig, updateSystemConfig } from "./procedures/system-config";
 import { getDefaultPrompt, setDefaultPrompt } from "./procedures/default-prompt";
+import { testPipeline } from "./procedures/test-pipeline";
 
 export const adminMeetingRouter = {
   members: {
@@ -22,5 +23,8 @@ export const adminMeetingRouter = {
   prompt: {
     getDefault: getDefaultPrompt,
     setDefault: setDefaultPrompt,
+  },
+  test: {
+    pipeline: testPipeline,
   },
 };

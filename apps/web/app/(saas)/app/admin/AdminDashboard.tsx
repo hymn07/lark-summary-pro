@@ -3,9 +3,12 @@
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
 import { toast } from "sonner";
-import { Users, FileText, Cpu } from "lucide-react";
+import { Users, FileText, Cpu, Play } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 export function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -23,6 +26,31 @@ export function AdminDashboard() {
   );
 
   const memberMode = (systemConfig as Record<string, unknown>)?.memberAccessMode ?? "open";
+  const [testMeetingId, setTestMeetingId] = useState("");
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+
+  const runTest = async () => {
+    if (!testMeetingId.trim()) { toast.error("请输入会议 ID"); return; }
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/rpc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: "/larkAdmin/test/pipeline", body: { meetingId: testMeetingId } }),
+      });
+      const json = await res.json();
+      setTestResult(JSON.stringify(json, null, 2));
+      if (!json.error) toast.success("流水线执行完成，查看终端日志");
+      else toast.error("执行失败");
+    } catch (e) {
+      setTestResult(String(e));
+      toast.error("请求失败");
+    } finally {
+      setTestLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -53,6 +81,28 @@ export function AdminDashboard() {
               <p className="text-sm text-gray-500 mt-1">仅白名单成员可用</p>
             </button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* 流水线测试 */}
+      <Card>
+        <CardHeader><CardTitle>流水线测试</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-gray-500">输入一个飞书会议 ID，模拟触发完整流水线（结果查看终端日志）</p>
+          <div className="flex gap-2">
+            <Input
+              value={testMeetingId}
+              onChange={(e) => setTestMeetingId(e.target.value)}
+              placeholder="飞书会议 ID，如 6911188411934433028"
+            />
+            <Button onClick={runTest} disabled={testLoading}>
+              <Play className="h-4 w-4 mr-1" />
+              {testLoading ? "执行中..." : "测试"}
+            </Button>
+          </div>
+          {testResult && (
+            <pre className="bg-gray-900 text-green-400 p-3 rounded text-xs overflow-auto max-h-64">{testResult}</pre>
+          )}
         </CardContent>
       </Card>
 
