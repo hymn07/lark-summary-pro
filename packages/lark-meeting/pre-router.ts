@@ -1,4 +1,4 @@
-import { generateObject } from "ai";
+import { generateObject, type LanguageModel } from "ai";
 import { z } from "zod";
 import type { MeetingDetail, PipelineContext, PreRouteResult } from "./types";
 
@@ -14,7 +14,7 @@ export async function runPreRoute(
 
   try {
     const result = await generateObject({
-      model: await getFastModel(), // 使用小模型降低成本
+      model: await getFastModel(),
       schema: z.object({
         shouldSkip: z.boolean(),
         skipReason: z.string().optional(),
@@ -35,21 +35,15 @@ ${settings.specialRequirements.map((r, i) => `${i + 1}. 话题：${r.topic} → 
 
 请判断：
 1. 该会议是否命中排除规则？如果命中，说明原因
-2. 如果没有排除，用户的特殊要求中有哪些与本次会议相关？提炼出应该注入到会议纪要 prompt 中的具体要求
-   - 如果特殊要求列表为空但会议正常 → extractedRequirements 可以为空
-   - 如果特殊要求中有匹配的 → extractedRequirements 写清楚要怎么调整`,
-
+2. 如果没有排除，用户的特殊要求中有哪些与本次会议相关？提炼出应该注入到会议纪要 prompt 中的具体要求`,
     });
     return result.object;
   } catch {
-    // 前置路由失败 → 降级为不做过滤
     return { shouldSkip: false };
   }
 }
 
-// 获取快速模型实例
-// TODO: 需要从 SystemConfig 读取模型提供商配置
-async function getFastModel() {
-  // 留空：需要用户配置模型提供商后实现
-  throw new Error("模型未配置");
+// TODO: 从 SystemConfig 读取模型提供商配置后实现
+async function getFastModel(): Promise<LanguageModel> {
+  throw new Error("模型未配置：请在管理后台添加 LLM 提供商");
 }

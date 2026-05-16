@@ -1,4 +1,4 @@
-import { generateObject } from "ai";
+import { generateObject, type LanguageModel } from "ai";
 import { z } from "zod";
 
 // 举一反三：从 1-3 篇示例纪要中学习风格，生成核心 Prompt
@@ -35,7 +35,7 @@ ${sampleTexts}`,
   };
 }
 
-async function getTextModel() {
-  // TODO: 需要从 SystemConfig 读取模型提供商配置
-  throw new Error("模型未配置");
+async function getTextModel(): Promise<LanguageModel> {
+  // TODO: 从 SystemConfig 读取模型提供商配置
+  throw new Error("模型未配置：请在管理后台添加 LLM 提供商");
 }

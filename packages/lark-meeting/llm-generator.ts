@@ -1,4 +1,4 @@
-import { generateObject } from "ai";
+import { generateObject, type LanguageModel } from "ai";
 import { MeetingMinutesSchema, type MeetingDetail, type MeetingMinutes } from "./types";
 
 // 调用 LLM 生成结构化会议纪要
@@ -44,9 +44,7 @@ async function getTranscriptText(detail: MeetingDetail): Promise<string | null> 
   }
 }
 
-// 获取主力模型实例
-// TODO: 需要从 SystemConfig 读取模型提供商配置
-async function getTextModel() {
-  // 留空：需要用户配置模型提供商后实现
-  throw new Error("模型未配置");
+// TODO: 从 SystemConfig 读取模型提供商配置后实现
+async function getTextModel(): Promise<LanguageModel> {
+  throw new Error("模型未配置：请在管理后台添加 LLM 提供商");
 }
