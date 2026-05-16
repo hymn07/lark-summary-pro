@@ -2,6 +2,7 @@ import { passkeyClient } from "@better-auth/passkey/client";
 import {
 	adminClient,
 	emailOTPClient,
+	genericOAuthClient,
 	inferAdditionalFields,
 	organizationClient,
 	twoFactorClient,
@@ -14,6 +15,7 @@ export const authClient = createAuthClient({
 		inferAdditionalFields<typeof auth>(),
 		emailOTPClient(),
 		organizationClient(),
+		genericOAuthClient(),
 		adminClient(),
 		passkeyClient(),
 		twoFactorClient(),

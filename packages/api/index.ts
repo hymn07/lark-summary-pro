@@ -8,27 +8,8 @@ import { logger as honoLogger } from "hono/logger";
 import { openApiHandler, rpcHandler } from "./orpc/handler";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "./lib/rate-limit";
 
-export { verifyApiToken } from "./modules/api-tokens/lib/token-utils";
-export { triggerNotification } from "./modules/notifications/lib/trigger";
 export { checkRateLimit, getClientIp, RATE_LIMITS } from "./lib/rate-limit";
 export { writeAuditLog, extractRequestMeta } from "./lib/audit-log";
-export {
-	getOrCreateInboundAddress,
-	resolveOrganizationByInboundAddress,
-} from "./modules/email-connections/lib/inbound-address";
-export {
-	ViewSpecSchema,
-	ViewBlockSchema,
-	VIEW_COMPONENT_DOCS,
-	type ViewSpec,
-	type ViewBlock,
-	type SummaryBlock,
-	type KpiCardsBlock,
-	type TodoListBlock,
-	type TimelineBlock,
-	type TableBlock,
-	type QuickActionsBlock,
-} from "./modules/entity-views/types";
 
 export const app = new Hono()
 	.basePath("/api")
