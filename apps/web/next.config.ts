@@ -120,19 +120,9 @@ const nextConfig: NextConfig = {
 	},
 	async redirects() {
 		return [
-			{
-				source: "/app/settings",
-				destination: "/app/settings/general",
-				permanent: true,
-			},
-			{
+				{
 				source: "/app/:organizationSlug/settings",
 				destination: "/app/:organizationSlug/settings/general",
-				permanent: true,
-			},
-			{
-				source: "/app/admin",
-				destination: "/app/admin/users",
 				permanent: true,
 			},
 		];
