@@ -53,13 +53,31 @@ docker compose up -d        # 启动本地基础设施
 docker compose logs -f      # 查看日志
 ```
 
-## 组件导入
+## 导入约定
+
+使用包名导入，禁止深层相对路径：
+
 ```typescript
-// UI 组件从 @repo/ui 导入
+// ✅ 正确
+import { auth } from "@repo/auth";
+import { db } from "@repo/database";
 import { Button, Card, Badge, Dialog } from "@repo/ui";
-// 图标用 lucide-react
-import { CheckCircleIcon, ClockIcon } from "lucide-react";
+import { cn } from "@repo/ui";
+import { orpcClient } from "@shared/lib/orpc-client";
+
+// ❌ 错误
+import { auth } from "../../../packages/auth/auth";
 ```
+
+路径别名：
+
+| 别名 | 指向 |
+|------|------|
+| `@repo/*` | `packages/*` |
+| `@repo/ui` | `packages/ui` |
+| `@shared/*` | `apps/web/modules/shared/*` |
+| `@saas/*` | `apps/web/modules/saas/*` |
+| `@marketing/*` | `apps/web/modules/marketing/*` |
 
 ## 每次完成任务后
 更新 **PROGRESS.md**：
@@ -74,6 +92,19 @@ import { CheckCircleIcon, ClockIcon } from "lucide-react";
 - **核心链路**：飞书事件 → 拉取逐字稿 → 参会人路由 → 前置过滤 → LLM 生成 → 创建文档
 - **用户角色**：管理员（成员管理 + 模型配置 + 默认 Prompt）+ 普通用户（开关/保存位置/排除规则/Prompt 版本）
 - **关键决策**：单租户（无 organizationId）、长连接接收事件、Prompt 加密存储用户不可见、一场会议 N 个内部参与者 → N 份独立纪要
+
+## 提交前自查
+
+- [ ] TypeScript 类型完整，无 `any`（除非有充分理由）
+- [ ] Server Component 优先，只在需要交互时才加 `"use client"`
+- [ ] 数据获取用 TanStack Query，不用 useEffect
+- [ ] 表单用 react-hook-form + zod
+- [ ] 每个数据展示组件处理了 loading / error / empty 三态
+- [ ] API procedure 遵循 oRPC 现有模式
+- [ ] 移动端优先的响应式设计
+- [ ] 无 `console.log` 残留
+- [ ] Biome lint 通过
+- [ ] 业务逻辑不在组件或 API handler 里（在 packages/ 里）
 
 ## 项目特定规则
 
