@@ -9,6 +9,22 @@ function findModelName(models: string[], keyword: string): string {
   return models.find((m) => m.includes(keyword)) ?? models[0];
 }
 
+function createModel(provider: { apiKey: string; apiBase: string; models: unknown }, keyword: string): LanguageModel {
+  const client = createOpenAI({
+    apiKey: provider.apiKey,
+    baseURL: provider.apiBase,
+    compatibility: "compatible",
+  });
+
+  const modelName = findModelName(provider.models as string[], keyword);
+  console.log(`[ModelFactory] 创建模型: ${modelName} (${keyword}) baseURL: ${provider.apiBase}`);
+
+  // 尝试 chat 模式（Chat Completions API）
+  const model = client.chat(modelName);
+  if (!model) throw new Error(`模型 ${modelName} 不可用`);
+  return model;
+}
+
 // 获取快速模型（用于分类、摘要等轻量任务）
 export async function getFastModel(): Promise<LanguageModel> {
   if (_fastModel) return _fastModel;
@@ -18,17 +34,7 @@ export async function getFastModel(): Promise<LanguageModel> {
     throw new Error("模型未配置：请在管理后台添加 LLM 提供商");
   }
 
-  const provider = providers[0];
-  const client = createOpenAI({
-    apiKey: provider.apiKey,
-    baseURL: provider.apiBase,
-  });
-
-  const modelName = findModelName(provider.models as string[], "flash");
-  const model = client.chat(modelName);
-  if (!model) throw new Error(`模型 ${modelName} 不可用`);
-
-  _fastModel = model;
+  _fastModel = createModel(providers[0], "flash");
   return _fastModel;
 }
 
@@ -41,16 +47,6 @@ export async function getTextModel(): Promise<LanguageModel> {
     throw new Error("模型未配置：请在管理后台添加 LLM 提供商");
   }
 
-  const provider = providers[0];
-  const client = createOpenAI({
-    apiKey: provider.apiKey,
-    baseURL: provider.apiBase,
-  });
-
-  const modelName = findModelName(provider.models as string[], "pro");
-  const model = client.chat(modelName);
-  if (!model) throw new Error(`模型 ${modelName} 不可用`);
-
-  _proModel = model;
+  _proModel = createModel(providers[0], "pro");
   return _proModel;
 }

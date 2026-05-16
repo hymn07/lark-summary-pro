@@ -30,7 +30,11 @@ export async function generateMinutes(
 
     return result.object;
   } catch (error) {
-    console.error("LLM 生成失败:", error);
+    const e = error as Error & { cause?: unknown; url?: string; statusCode?: number };
+    console.error("LLM 生成失败:", e.message);
+    if (e.url) console.error("  请求 URL:", e.url);
+    if (e.statusCode) console.error("  状态码:", e.statusCode);
+    if (e.cause) console.error("  原因:", e.cause);
     return null;
   }
 }
