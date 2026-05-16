@@ -1,8 +1,8 @@
 import { handleMeetingEnded } from "@repo/lark-meeting";
+import { runMockPipeline } from "@repo/lark-meeting/mock-pipeline";
 import { z } from "zod";
 import { adminProcedure } from "../../../orpc/procedures";
 
-// 测试端点：模拟一个飞书会议结束事件，触发完整流水线
 export const testPipeline = adminProcedure
   .route({
     method: "POST",
@@ -12,11 +12,18 @@ export const testPipeline = adminProcedure
   })
   .input(
     z.object({
-      meetingId: z.string().min(1).describe("飞书会议 ID"),
+      meetingId: z.string().min(1).describe("飞书会议 ID（输入 mock 使用模拟数据）"),
       topic: z.string().optional().describe("会议主题"),
     }),
   )
   .handler(async ({ input }) => {
+    // mock 模式：跳过飞书 API，使用内置模拟数据
+    if (input.meetingId === "mock") {
+      const result = await runMockPipeline(input.topic ?? "测试会议");
+      return { mode: "mock", ...result };
+    }
+
+    // 真实模式：调用飞书 API
     const mockEvent = {
       meeting: {
         id: input.meetingId,
@@ -28,5 +35,5 @@ export const testPipeline = adminProcedure
     };
 
     const results = await handleMeetingEnded(mockEvent);
-    return { message: "流水线已执行", results };
+    return { mode: "live", message: "流水线已执行", results };
   });

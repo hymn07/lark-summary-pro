@@ -6,10 +6,11 @@ import { getTextModel } from "./model-factory";
 export async function generateMinutes(
   detail: MeetingDetail,
   prompt: string,
+  mockTranscript?: string,
 ): Promise<MeetingMinutes | null> {
   try {
-    // 先获取逐字稿文本
-    const transcript = await getTranscriptText(detail);
+    // 先获取逐字稿文本（mockTranscript 用于测试，跳过飞书 API）
+    const transcript = mockTranscript ?? await getTranscriptText(detail);
 
     const systemPrompt = `${prompt}
 

@@ -26,7 +26,7 @@ export function AdminDashboard() {
   );
 
   const memberMode = (systemConfig as Record<string, unknown>)?.memberAccessMode ?? "open";
-  const [testMeetingId, setTestMeetingId] = useState("");
+  const [testMeetingId, setTestMeetingId] = useState("mock");
   const [testResult, setTestResult] = useState<string | null>(null);
   const [testLoading, setTestLoading] = useState(false);
 
@@ -93,7 +93,7 @@ export function AdminDashboard() {
             <Input
               value={testMeetingId}
               onChange={(e) => setTestMeetingId(e.target.value)}
-              placeholder="飞书会议 ID，如 6911188411934433028"
+              placeholder='输入 "mock" 用模拟数据，或输入真实飞书会议 ID'
             />
             <Button onClick={runTest} disabled={testLoading}>
               <Play className="h-4 w-4 mr-1" />
