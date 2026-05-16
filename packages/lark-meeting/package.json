@@ -6,6 +6,7 @@
   "types": "./index.ts",
   "dependencies": {
     "@ai-sdk/openai": "^3.0.0",
+    "@larksuiteoapi/node-sdk": "^1.64.0",
     "@repo/ai": "workspace:*",
     "@repo/database": "workspace:*",
     "ai": "^6.0.0",
