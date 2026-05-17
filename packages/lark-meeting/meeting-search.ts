@@ -119,7 +119,7 @@ export async function getCachedMeetings(limit = 50) {
     orderBy: { startTime: "desc" },
     take: limit,
     include: {
-      _count: { select: { MeetingRecord: true } },
+      _count: { select: { meetingRecords: true } },
     },
   });
 }

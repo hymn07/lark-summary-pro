@@ -182,7 +182,7 @@ export const auth = betterAuth({
           authorizationUrl: "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
           tokenUrl: "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
           userInfoUrl: "https://open.feishu.cn/open-apis/authen/v1/user_info",
-          scopes: ["auth:user.id:read", "offline_access"],
+          scopes: ["auth:user.id:read", "offline_access", "minutes:minutes.search:read"],
           redirectURI: process.env.FEISHU_REDIRECT_URI as string,
           authentication: "post",
           getToken: async ({ code, redirectURI }) => {

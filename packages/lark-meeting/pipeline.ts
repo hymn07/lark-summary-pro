@@ -22,8 +22,7 @@ export async function handleMeetingEnded(
   log("Step 1: 获取会议详情...");
   const detail = await fetchMeetingDetail(meetingId);
   if (!detail) {
-    log("Step 1 失败: 无法获取会议详情");
-    await createProcessingLog(meetingId, "fetch_detail", "failed", "无法获取会议详情");
+    log("Step 1 失败: 无法获取会议详情（会议可能不存在或未开启妙记）");
     return [];
   }
   log(`Step 1 成功: 参会${detail.participantCount}人`);
