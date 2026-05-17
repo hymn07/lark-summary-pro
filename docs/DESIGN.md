@@ -98,7 +98,7 @@ PromptVersion
 **MeetingRecord**：每次会议的处理记录
 ```
 MeetingRecord
-  id, meetingId（飞书会议ID）, topic, startTime, endTime
+  id, meetingId（飞书会议ID，也关联 FeishuMeeting）, topic, startTime, endTime
   hostUserId, participantCount
   status（processing/completed/skipped/failed）
   promptVersionId（用的哪个 Prompt 版本）
@@ -106,6 +106,21 @@ MeetingRecord
   skippedReason（跳过原因）
   aiSummary（AI 生成的简短摘要，用于列表展示）
   errorMessage
+```
+
+**FeishuMeeting**：会议源数据缓存（飞书会议 + 用户手动上传）
+```
+FeishuMeeting
+  id, meetingId（unique）, meetingNo, topic, startTime, endTime
+  hostUserId, participantCount
+  participantsJson（JSON，参会人列表缓存，取前 20 人）
+  transcriptText, transcriptFetched
+  docUrl
+  source（feishu / manual）
+  noteDocToken（飞书妙记文档 token，可拼妙记回放链接）
+  meetingUrl（飞书会议链接 或 用户手填链接）
+  uploadedFileName（手动上传的文件名）
+  createdById（手动创建者，feishu 来源为 null）
 ```
 
 #### 关系对象
@@ -130,8 +145,7 @@ UserSettings
   id, userId
   autoEnabled（布尔，是否开启自动纪要）
   saveFolderToken（飞书文件夹 token）
-  exclusionRules（JSON，自然语言排除规则列表）
-  specialRequirements（JSON，自然语言特殊要求列表，如 {"topic": "融资", "focus": "技术"}）
+  extraInstructions（Text，用户自由文本指令，如排除规则和重点关注）
   activePromptVersionId
 ```
 
@@ -274,33 +288,95 @@ Step 7: 后处理（写 ProcessingLog）
 
 ```
 app/(saas)/app/
-├── page.tsx                    # Dashboard（会议纪要列表）
-├── [recordId]/page.tsx         # 会议纪要详情
+├── page.tsx                    # 会议纪要列表（MeetingRecord 汇总）
 ├── settings/
 │   ├── page.tsx                # 用户设置（主设置页）
 │   └── prompts/
 │       └── page.tsx            # Prompt 版本管理 + 举一反三（同页）
+├── meetings/
+│   ├── page.tsx                # 会议记录列表（FeishuMeeting + 关联纪要）
+│   └── [id]/page.tsx           # 会议详情（纪要 + 逐字稿）
 ├── admin/
 │   ├── page.tsx                # 管理后台首页（概览 + 成员模式选择）
 │   ├── members/
-│   │   ├── page.tsx            # 成员列表 + 添加成员
-│   │   └── [memberId]/page.tsx # 成员详情（模型分配等）
+│   │   └── page.tsx            # 成员列表 + 添加成员
 │   ├── models/
 │   │   └── page.tsx            # 模型提供商管理
 │   └── prompt/
-│       └── page.tsx            # 公司默认 Prompt 管理 + 举一反三（复用同一组件）
+│       └── page.tsx            # 公司默认 Prompt 管理
 ```
 
 ### 各页面布局
 
-#### Dashboard（会议纪要列表）
+#### 会议记录列表（/app/meetings）
+
+侧边栏「会议记录」入口，展示所有源会议（飞书 + 手动上传），每条内嵌关联纪要：
+
+```
+顶部：标题 + "+ 添加会议"按钮
+主体：卡片列表，每张卡片：
+  - 会议主题 | 来源标签（飞书 / 手动）
+  - 时间范围
+  - 参会人（前 4 人 + "等 N 人"）
+  - 链接栏：妙记回放、飞书会议链接
+  - 关联纪要内嵌卡片：
+    - 状态图标 + 标签 | 生成时间
+    - AI 摘要（2-3 行）
+    - 打开纪要文档链接
+  - [生成纪要] 按钮（无纪要时）
+三态：loading（skeleton）/ empty（"暂无会议"）/ error（重试）
+```
+
+#### 会议详情（/app/meetings/[id]）
+
+点击会议记录卡片进入，展示完整会议信息和纪要：
+
+```
+顶部：← 返回 + 会议标题
+元信息：时间 · 人数 · 来源标签
+参会人列表（完整列表）
+链接栏：妙记回放、飞书会议链接
+
+—— 会议纪要区域 ——
+卡片（固定高度 h-64，内容溢出滚动）：
+  - 状态标签 + 生成时间
+  - 摘要 / 关键要点 / 决策 / 待办
+  - 打开纪要文档 + 处理日志
+
+—— 逐字稿区域 ——
+卡片（固定高度 h-48，内容溢出滚动）：
+  - 逐字稿文本
+
+[生成纪要] / [重新生成]
+```
+
+#### 会议纪要列表（/app — Dashboard）
+
+侧边栏「会议纪要」入口，展示所有生成的 MeetingRecord，带来源会议上下文：
+
 ```
 顶部：标题 + "最近生成的会议纪要" + 状态筛选
 主体：卡片列表，每张卡片：
-  - 会议主题 | 状态标签 | 时间
-  - AI 摘要（2-3 行）
-  - 链接按钮（打开飞书文档）
-三态：loading（skeleton）/ empty（"还没有会议纪要"）/ error（重试按钮）
+  - 状态图标 + 标签（已完成/处理中/失败/跳过）
+  - 来源会议名 + 来源标签（飞书/手动）
+  - 生成时间
+  - AI 摘要（成功）/ 错误信息（失败）/ 跳过原因（跳过）
+  - 处理中状态有 loading 动画
+  - 操作按钮：打开纪要文档、查看源会议、重试（失败/跳过）
+  点击卡片 → 跳转到对应会议详情页
+三态：loading（skeleton）/ empty（"还没有会议纪要"）/ error（重试）
+```
+
+#### 手动添加会议（弹窗）
+
+```
+会议记录列表页顶部 "+ 添加会议" → 弹出 Dialog：
+  - 会议名称（必填）
+  - 上传转文字文档（.txt/.md，内容自动填入逐字稿）
+  - 会议时间（可选）
+  - 会议链接（可选）
+  - [取消] [添加]
+添加后 source="manual"，展示时标签为 [手动上传]
 ```
 
 #### 用户设置页
@@ -308,9 +384,8 @@ app/(saas)/app/
 顶部：标题
 表单区：
   - 自动会议纪要开关（Toggle）
-  - 保存位置选择（飞书文件夹选择器）
-  - 排除规则（输入框 + 列表，可增删）
-  - 特殊要求（输入框 + 列表，如 "话题：x → 重点：y"）
+  - 额外指令（Textarea，自由文本）
+  - 保存位置选择（飞书文件夹 Token）
   - 当前 Prompt 版本（下拉选择）
   - 跳转链接 → Prompt 管理页
 ```
@@ -318,10 +393,11 @@ app/(saas)/app/
 #### Prompt 版本管理（含举一反三）
 ```
 顶部：标题 + "创建新版本"按钮
-点击"创建新版本" → 弹出或展开表单：
-  - 上传 1-3 篇会议纪要（飞书文档链接或文件上传）
-  - 给这个版本起名（如"简洁版"、"技术评审版"）
-  - 点击"生成" → 后台 AI 学习 → 返回风格描述预览 → 用户确认保存
+点击"创建新版本" → Dialog 弹窗：
+  - 模式切换：AI 学习生成 / 手动编写
+  - 版本名称
+  - 上传 1-3 篇示例（AI 模式）或直接编写 Prompt（手动模式）
+  - 点击"生成/保存"
 主体：版本卡片列表，每张：
   - 版本名称 | 风格描述 | 创建时间
   - 活跃标记（当前使用） | 切换按钮 | 删除按钮
@@ -341,7 +417,7 @@ app/(saas)/app/
 
 #### 管理后台 — 成员管理
 ```
-顶部：标题 + "添加成员"按钮（审批模式下按钮可见，开放模式下隐藏）
+顶部：← 返回 + 标题 + "添加成员"按钮（审批模式下按钮可见，开放模式下隐藏）
 模式为"开放模式"时：显示提示文案"当前为开放模式，公司全员均可使用"
 主体：表格
   - 姓名 | 飞书ID | 状态 | 可用模型 | 操作（编辑模型/移除）
@@ -349,7 +425,7 @@ app/(saas)/app/
 
 #### 管理后台 — 模型提供商
 ```
-顶部：标题 + "添加提供商"按钮
+顶部：← 返回 + 标题 + "添加提供商"按钮
 主体：提供商列表
   - 名称 | API Base | 模型数 | 操作
 点击展开模型列表

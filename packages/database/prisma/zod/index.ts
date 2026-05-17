@@ -120,7 +120,7 @@ export type SampleLearningScalarFieldEnum = z.infer<typeof SampleLearningScalarF
 
 // File: FeishuMeetingScalarFieldEnum.schema.ts
 
-export const FeishuMeetingScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'meetingNo', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'transcriptText', 'transcriptFetched', 'docUrl', 'createdAt', 'updatedAt'])
+export const FeishuMeetingScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'meetingNo', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'participantsJson', 'transcriptText', 'transcriptFetched', 'docUrl', 'source', 'noteDocToken', 'meetingUrl', 'uploadedFileName', 'createdById', 'createdAt', 'updatedAt'])
 
 export type FeishuMeetingScalarFieldEnum = z.infer<typeof FeishuMeetingScalarFieldEnumSchema>;
 
@@ -141,6 +141,12 @@ export type SortOrder = z.infer<typeof SortOrderSchema>;
 export const JsonNullValueInputSchema = z.enum(['JsonNull'])
 
 export type JsonNullValueInput = z.infer<typeof JsonNullValueInputSchema>;
+
+// File: NullableJsonNullValueInput.schema.ts
+
+export const NullableJsonNullValueInputSchema = z.enum(['DbNull', 'JsonNull'])
+
+export type NullableJsonNullValueInput = z.infer<typeof NullableJsonNullValueInputSchema>;
 
 // File: QueryMode.schema.ts
 
@@ -171,6 +177,12 @@ export type PurchaseType = z.infer<typeof PurchaseTypeSchema>;
 export const MeetingRecordStatusSchema = z.enum(['processing', 'completed', 'skipped', 'failed'])
 
 export type MeetingRecordStatus = z.infer<typeof MeetingRecordStatusSchema>;
+
+// File: MeetingSource.schema.ts
+
+export const MeetingSourceSchema = z.enum(['feishu', 'manual'])
+
+export type MeetingSource = z.infer<typeof MeetingSourceSchema>;
 
 // File: User.schema.ts
 
@@ -485,9 +497,15 @@ export const FeishuMeetingSchema = z.object({
   endTime: z.date().nullish(),
   hostUserId: z.string().nullish(),
   participantCount: z.number().int().nullish(),
+  participantsJson: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("[]").nullish(),
   transcriptText: z.string().nullish(),
   transcriptFetched: z.boolean(),
   docUrl: z.string().nullish(),
+  source: MeetingSourceSchema.default("feishu"),
+  noteDocToken: z.string().nullish(),
+  meetingUrl: z.string().nullish(),
+  uploadedFileName: z.string().nullish(),
+  createdById: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

@@ -1,9 +1,26 @@
+import { db } from "@repo/database";
 import type { MeetingDetail, MeetingParticipant } from "./types";
 import { getTenantAccessToken } from "./feishu-client";
 
 // 调用飞书 API 获取会议详情和逐字稿
 // 使用 tenant_access_token（应用身份），可拉取企业内任意会议
 export async function fetchMeetingDetail(meetingId: string): Promise<MeetingDetail | null> {
+  // 手动上传的会议：从缓存读取
+  if (meetingId.startsWith("manual-")) {
+    const cached = await db.feishuMeeting.findUnique({ where: { meetingId } });
+    if (!cached) return null;
+    return {
+      id: cached.meetingId,
+      topic: cached.topic,
+      startTime: cached.startTime ? String(Math.floor(cached.startTime.getTime() / 1000)) : null,
+      endTime: cached.endTime ? String(Math.floor(cached.endTime.getTime() / 1000)) : null,
+      hostUserId: cached.hostUserId,
+      participantCount: cached.participantCount ?? 1,
+      participants: [],
+      transcriptDocToken: null, // 不走飞书 API，直接读 transcriptText
+    };
+  }
+
   const token = await getTenantAccessToken();
   if (!token) return null;
 

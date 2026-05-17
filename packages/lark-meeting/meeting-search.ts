@@ -44,6 +44,7 @@ export async function getMeetingDetail(meetingId: string): Promise<{
   endTime: string | null;
   hostUserId: string | null;
   participantCount: number;
+  participants: { userId: string; userName: string | null; isHost: boolean; isExternal: boolean }[];
   transcriptDocToken: string | null;
   noteDocToken: string | null;
 } | null> {
@@ -61,12 +62,20 @@ export async function getMeetingDetail(meetingId: string): Promise<{
   const meeting = json.data?.meeting;
   if (!meeting) return null;
 
+  const participants = (meeting.participants ?? []).map((p: Record<string, unknown>) => ({
+    userId: (p.user_id ?? p.open_id ?? "") as string,
+    userName: (p.user_name ?? null) as string | null,
+    isHost: (p.is_host ?? false) as boolean,
+    isExternal: (p.is_external ?? false) as boolean,
+  }));
+
   return {
     topic: meeting.topic ?? null,
     startTime: meeting.start_time ?? null,
     endTime: meeting.end_time ?? null,
     hostUserId: meeting.host_user?.id ?? null,
     participantCount: Number(meeting.participant_count ?? 0),
+    participants,
     transcriptDocToken: meeting.related_artifacts?.verbatim_doc_token ?? null,
     noteDocToken: meeting.related_artifacts?.note_doc_token ?? null,
   };
@@ -88,10 +97,18 @@ export async function getTranscriptContent(docToken: string): Promise<string | n
   return json.data?.content ?? null;
 }
 
+export interface CacheMeetingDetail {
+  transcriptDocToken?: string | null;
+  transcriptText?: string | null;
+  noteDocToken?: string | null;
+  participants?: { userId: string; userName: string | null; isHost: boolean; isExternal: boolean }[];
+  meetingUrl?: string | null;
+}
+
 // 缓存会议到数据库
 export async function cacheMeeting(
   meeting: FeishuMeetingItem,
-  detail?: { transcriptDocToken?: string | null; transcriptText?: string | null },
+  detail?: CacheMeetingDetail,
 ) {
   return db.feishuMeeting.upsert({
     where: { meetingId: meeting.id },
@@ -101,6 +118,9 @@ export async function cacheMeeting(
       startTime: meeting.startTime ? new Date(Number(meeting.startTime) * 1000) : null,
       endTime: meeting.endTime ? new Date(Number(meeting.endTime) * 1000) : null,
       ...(detail?.transcriptText ? { transcriptText: detail.transcriptText, transcriptFetched: true } : {}),
+      ...(detail?.noteDocToken ? { noteDocToken: detail.noteDocToken } : {}),
+      ...(detail?.participants ? { participantsJson: detail.participants } : {}),
+      ...(detail?.meetingUrl ? { meetingUrl: detail.meetingUrl } : {}),
     },
     create: {
       meetingId: meeting.id,
@@ -108,18 +128,26 @@ export async function cacheMeeting(
       topic: meeting.topic,
       startTime: meeting.startTime ? new Date(Number(meeting.startTime) * 1000) : null,
       endTime: meeting.endTime ? new Date(Number(meeting.endTime) * 1000) : null,
+      source: "feishu",
       ...(detail?.transcriptText ? { transcriptText: detail.transcriptText, transcriptFetched: true } : {}),
+      ...(detail?.noteDocToken ? { noteDocToken: detail.noteDocToken } : {}),
+      ...(detail?.participants ? { participantsJson: detail.participants } : {}),
+      ...(detail?.meetingUrl ? { meetingUrl: detail.meetingUrl } : {}),
     },
   });
 }
 
-// 获取缓存的会议列表
+// 获取缓存的会议列表（飞书 + 手动）
 export async function getCachedMeetings(limit = 50) {
   return db.feishuMeeting.findMany({
     orderBy: { startTime: "desc" },
     take: limit,
     include: {
       _count: { select: { meetingRecords: true } },
+      meetingRecords: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      },
     },
   });
 }

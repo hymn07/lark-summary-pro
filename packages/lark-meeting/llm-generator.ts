@@ -48,6 +48,14 @@ export async function generateMinutes(
 }
 
 async function getTranscriptText(detail: MeetingDetail): Promise<string | null> {
+  // 手动会议：从 FeishuMeeting 缓存读逐字稿
+  if (detail.id.startsWith("manual-")) {
+    const { db } = await import("@repo/database");
+    const cached = await db.feishuMeeting.findUnique({ where: { meetingId: detail.id } });
+    return cached?.transcriptText ?? null;
+  }
+
+  // 飞书会议：通过 docToken 拉取逐字稿
   if (!detail.transcriptDocToken) return null;
   try {
     const { fetchTranscriptContent } = await import("./meeting-fetcher");

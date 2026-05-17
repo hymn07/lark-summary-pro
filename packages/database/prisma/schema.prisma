@@ -44,6 +44,7 @@ model User {
   meetingRecords     MeetingRecord[]
   userModelAccesses  UserModelAccess[]
   createdProviders   ModelProvider[]
+  createdMeetings   FeishuMeeting[]
   userSettings       UserSettings?
   sampleLearnings    SampleLearning[]
 
@@ -349,24 +350,37 @@ model SampleLearning {
   @@map("sample_learning")
 }
 
+enum MeetingSource {
+  feishu
+  manual
+}
+
 model FeishuMeeting {
-  id              String   @id @default(cuid())
-  meetingId       String   @unique
-  meetingNo       String?
-  topic           String?
-  startTime       DateTime?
-  endTime         DateTime?
-  hostUserId      String?
+  id               String   @id @default(cuid())
+  meetingId        String   @unique
+  meetingNo        String?
+  topic            String?
+  startTime        DateTime?
+  endTime          DateTime?
+  hostUserId       String?
   participantCount Int?
-  transcriptText  String?  @db.Text
-  transcriptFetched Boolean @default(false)
-  docUrl          String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  meetingRecords  MeetingRecord[]
+  participantsJson Json?    @default("[]")
+  transcriptText   String?  @db.Text
+  transcriptFetched Boolean  @default(false)
+  docUrl           String?
+  source           MeetingSource @default(feishu)
+  noteDocToken     String?
+  meetingUrl       String?
+  uploadedFileName String?
+  createdById      String?
+  createdBy        User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  meetingRecords   MeetingRecord[]
 
   @@index([startTime])
   @@index([meetingId])
+  @@index([source])
   @@map("feishu_meeting")
 }
 
