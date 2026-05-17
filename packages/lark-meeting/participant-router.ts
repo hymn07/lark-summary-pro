@@ -60,9 +60,7 @@ export async function routeParticipants(
       userSettings: {
         autoEnabled: settings.autoEnabled,
         saveFolderToken: settings.saveFolderToken,
-        exclusionRules: (settings.exclusionRules as string[]) ?? [],
-        specialRequirements:
-          (settings.specialRequirements as { topic: string; focus: string }[]) ?? [],
+        extraInstructions: settings.extraInstructions ?? null,
         activePromptVersionId: settings.activePromptVersionId,
       },
       corePrompt,

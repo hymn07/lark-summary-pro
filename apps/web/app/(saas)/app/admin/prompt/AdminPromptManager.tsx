@@ -7,6 +7,7 @@ import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
 import { Badge } from "@repo/ui/components/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@repo/ui/components/dialog";
 import { toast } from "sonner";
 import { Sparkles, CheckCircle2, Upload, FileText } from "lucide-react";
 import { useState, useRef } from "react";
@@ -92,22 +93,23 @@ export function AdminPromptManager({
         <p className="text-gray-500">还没有设置默认 Prompt</p>
       )}
 
-      <Button onClick={() => setShowCreate(!showCreate)}>
+      <Button onClick={() => setShowCreate(true)}>
         <Sparkles className="h-4 w-4 mr-1" />
         {current ? "替换默认 Prompt" : "创建默认 Prompt"}
       </Button>
 
-      {showCreate && (
-        <Card>
-          <CardContent className="p-4 space-y-4">
-            <h3 className="font-medium">{current ? "替换" : "创建"}公司默认风格</h3>
-
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{current ? "替换" : "创建"}公司默认风格</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             {/* 模式切换 */}
             <div className="flex gap-2">
-              <Button variant={createMode === "ai" ? "default" : "outline"} size="sm" onClick={() => setCreateMode("ai")}>
+              <Button variant={createMode === "ai" ? "primary" : "outline"} size="sm" onClick={() => setCreateMode("ai")}>
                 <Sparkles className="h-3 w-3 mr-1" />AI 学习生成
               </Button>
-              <Button variant={createMode === "manual" ? "default" : "outline"} size="sm" onClick={() => setCreateMode("manual")}>
+              <Button variant={createMode === "manual" ? "primary" : "outline"} size="sm" onClick={() => setCreateMode("manual")}>
                 <FileText className="h-3 w-3 mr-1" />手动编写
               </Button>
             </div>
@@ -170,17 +172,16 @@ export function AdminPromptManager({
                 </div>
               </>
             )}
-
-            <div className="flex gap-2">
-              <Button onClick={handleCreate} disabled={loading}>
-                <Sparkles className="h-4 w-4 mr-1" />
-                {loading ? "生成中..." : createMode === "ai" ? "AI 学习生成" : "保存"}
-              </Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+            <Button onClick={handleCreate} disabled={loading}>
+              <Sparkles className="h-4 w-4 mr-1" />
+              {loading ? "生成中..." : createMode === "ai" ? "AI 学习生成" : "保存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

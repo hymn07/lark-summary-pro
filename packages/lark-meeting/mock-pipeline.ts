@@ -49,8 +49,7 @@ export async function runMockPipeline(topic: string) {
     userSettings: {
       autoEnabled: true,
       saveFolderToken: null,
-      exclusionRules: [],
-      specialRequirements: [],
+      extraInstructions: null,
       activePromptVersionId: null,
     },
     corePrompt: null, // 用默认 Prompt

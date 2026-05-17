@@ -73,8 +73,7 @@ export interface PipelineContext {
   userSettings: {
     autoEnabled: boolean;
     saveFolderToken: string | null;
-    exclusionRules: string[];
-    specialRequirements: { topic: string; focus: string }[];
+    extraInstructions: string | null;
     activePromptVersionId: string | null;
   } | null;
   corePrompt: string | null;

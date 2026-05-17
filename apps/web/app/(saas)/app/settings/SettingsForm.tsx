@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/ca
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Switch } from "@repo/ui/components/switch";
+import { Textarea } from "@repo/ui/components/textarea";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { toast } from "sonner";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -21,21 +22,16 @@ export function SettingsForm() {
   const { data: prompts } = useQuery(orpc.prompts.list.queryOptions());
 
   const [autoEnabled, setAutoEnabled] = useState(true);
+  const [extraInstructions, setExtraInstructions] = useState("");
   const [saveFolderToken, setSaveFolderToken] = useState("");
-  const [exclusionRules, setExclusionRules] = useState<string[]>([]);
-  const [newExclusionRule, setNewExclusionRule] = useState("");
-  const [specialReqs, setSpecialReqs] = useState<{ topic: string; focus: string }[]>([]);
-  const [newReqTopic, setNewReqTopic] = useState("");
-  const [newReqFocus, setNewReqFocus] = useState("");
   const [activeVersionId, setActiveVersionId] = useState<string>("");
 
   // 加载已有设置
   useState(() => {
     if (settings) {
       setAutoEnabled((settings as Record<string, unknown>).autoEnabled as boolean ?? true);
+      setExtraInstructions((settings as Record<string, unknown>).extraInstructions as string ?? "");
       setSaveFolderToken((settings as Record<string, unknown>).saveFolderToken as string ?? "");
-      setExclusionRules((settings as Record<string, unknown>).exclusionRules as string[] ?? []);
-      setSpecialReqs((settings as Record<string, unknown>).specialRequirements as { topic: string; focus: string }[] ?? []);
       setActiveVersionId((settings as Record<string, unknown>).activePromptVersionId as string ?? "");
     }
   });
@@ -46,9 +42,8 @@ export function SettingsForm() {
     try {
       await updateMutation.mutateAsync({
         autoEnabled,
+        extraInstructions: extraInstructions || null,
         saveFolderToken: saveFolderToken || null,
-        exclusionRules,
-        specialRequirements: specialReqs,
         activePromptVersionId: activeVersionId || null,
       });
       toast.success("设置已保存");
@@ -72,6 +67,21 @@ export function SettingsForm() {
         </CardContent>
       </Card>
 
+      {/* 额外指令 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>额外指令</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={extraInstructions}
+            onChange={(e) => setExtraInstructions(e.target.value)}
+            placeholder='可以告诉 AI 哪些会议要跳过、哪些话题要重点关注。比如："排除关于年会的会议"、"涉及融资话题时重点关注估值和条款"'
+            rows={5}
+          />
+        </CardContent>
+      </Card>
+
       {/* 保存位置 */}
       <Card>
         <CardHeader>
@@ -85,96 +95,6 @@ export function SettingsForm() {
             placeholder="留空则保存到根目录"
             className="mt-1"
           />
-        </CardContent>
-      </Card>
-
-      {/* 排除规则 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>排除规则</CardTitle>
-          <p className="text-sm text-gray-500">命中以下规则的会议将自动跳过，不生成纪要</p>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2 mb-3">
-            <Input
-              value={newExclusionRule}
-              onChange={(e) => setNewExclusionRule(e.target.value)}
-              placeholder='如"关于年会的会议"'
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (newExclusionRule.trim()) {
-                  setExclusionRules([...exclusionRules, newExclusionRule.trim()]);
-                  setNewExclusionRule("");
-                }
-              }}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          {exclusionRules.map((rule, i) => (
-            <div key={i} className="flex items-center gap-2 py-1 text-sm">
-              <span className="flex-1">{rule}</span>
-              <button
-                type="button"
-                onClick={() => setExclusionRules(exclusionRules.filter((_, j) => j !== i))}
-                className="text-red-500 hover:text-red-700"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* 特殊要求 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>特殊要求</CardTitle>
-          <p className="text-sm text-gray-500">针对特定话题的会议，需要重点关注的内容</p>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2 mb-3">
-            <Input
-              value={newReqTopic}
-              onChange={(e) => setNewReqTopic(e.target.value)}
-              placeholder="话题（如：融资、合作）"
-              className="flex-1"
-            />
-            <Input
-              value={newReqFocus}
-              onChange={(e) => setNewReqFocus(e.target.value)}
-              placeholder="重点关注（如：技术细节）"
-              className="flex-1"
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (newReqTopic.trim() && newReqFocus.trim()) {
-                  setSpecialReqs([...specialReqs, { topic: newReqTopic.trim(), focus: newReqFocus.trim() }]);
-                  setNewReqTopic("");
-                  setNewReqFocus("");
-                }
-              }}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          {specialReqs.map((req, i) => (
-            <div key={i} className="flex items-center gap-2 py-1 text-sm">
-              <span className="flex-1">
-                话题 <strong>{req.topic}</strong> → 重点关注 <strong>{req.focus}</strong>
-              </span>
-              <button
-                type="button"
-                onClick={() => setSpecialReqs(specialReqs.filter((_, j) => j !== i))}
-                className="text-red-500 hover:text-red-700"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
         </CardContent>
       </Card>
 
@@ -214,7 +134,7 @@ export function SettingsForm() {
 function SettingsSkeleton() {
   return (
     <div className="space-y-6 max-w-2xl">
-      {Array.from({ length: 5 }).map((_, i) => (
+      {Array.from({ length: 4 }).map((_, i) => (
         <Card key={i}>
           <CardHeader>
             <Skeleton className="h-6 w-32" />

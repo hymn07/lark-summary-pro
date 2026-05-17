@@ -302,8 +302,7 @@ model UserSettings {
   user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   autoEnabled           Boolean        @default(true)
   saveFolderToken       String?
-  exclusionRules        Json           @default("[]")
-  specialRequirements   Json           @default("[]")
+  extraInstructions     String?
   activePromptVersionId String?
   activePromptVersion   PromptVersion? @relation(fields: [activePromptVersionId], references: [id], onDelete: SetNull)
   createdAt             DateTime       @default(now())

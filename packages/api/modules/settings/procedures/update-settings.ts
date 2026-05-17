@@ -13,10 +13,7 @@ export const updateSettings = protectedProcedure
     z.object({
       autoEnabled: z.boolean().optional(),
       saveFolderToken: z.string().nullable().optional(),
-      exclusionRules: z.array(z.string()).optional(),
-      specialRequirements: z
-        .array(z.object({ topic: z.string(), focus: z.string() }))
-        .optional(),
+      extraInstructions: z.string().nullable().optional(),
       activePromptVersionId: z.string().nullable().optional(),
     }),
   )

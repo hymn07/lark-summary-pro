@@ -87,24 +87,20 @@ export const tools = {
   update_user_settings: {
     name: "update_user_settings",
     description:
-      "更新用户设置。当用户说「开启/关闭自动纪要」「修改排除规则」「切换 Prompt 版本」时调用。" +
+      "更新用户设置。当用户说「开启/关闭自动纪要」「修改额外指令」「切换 Prompt 版本」时调用。" +
       "可以部分更新，只传要修改的字段。",
     inputSchema: z.object({
       userId: z.string(),
       autoEnabled: z.boolean().optional(),
       saveFolderToken: z.string().nullable().optional(),
-      exclusionRules: z.array(z.string()).optional(),
-      specialRequirements: z
-        .array(z.object({ topic: z.string(), focus: z.string() }))
-        .optional(),
+      extraInstructions: z.string().nullable().optional(),
       activePromptVersionId: z.string().nullable().optional(),
     }),
     handler: async (input: {
       userId: string;
       autoEnabled?: boolean;
       saveFolderToken?: string | null;
-      exclusionRules?: string[];
-      specialRequirements?: { topic: string; focus: string }[];
+      extraInstructions?: string | null;
       activePromptVersionId?: string | null;
     }) => {
       const { userId, ...data } = input;

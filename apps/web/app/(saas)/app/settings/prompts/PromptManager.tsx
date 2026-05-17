@@ -9,6 +9,7 @@ import { Label } from "@repo/ui/components/label";
 import { Textarea } from "@repo/ui/components/textarea";
 import { Badge } from "@repo/ui/components/badge";
 import { Skeleton } from "@repo/ui/components/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@repo/ui/components/dialog";
 import { toast } from "sonner";
 import { Plus, Trash2, Sparkles, CheckCircle2, Upload, FileText } from "lucide-react";
 import { useState, useRef } from "react";
@@ -76,15 +77,17 @@ export function PromptManager() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <Button onClick={() => setShowCreate(!showCreate)}><Plus className="h-4 w-4 mr-1" />创建新版本</Button>
+      <Button onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-1" />创建新版本</Button>
 
-      {showCreate && (
-        <Card>
-          <CardContent className="p-4 space-y-4">
-            <h3 className="font-medium flex items-center gap-2"><Sparkles className="h-5 w-5" />创建新风格</h3>
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" />创建新风格</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="flex gap-2">
-              <Button variant={createMode === "ai" ? "default" : "outline"} size="sm" onClick={() => setCreateMode("ai")}><Sparkles className="h-3 w-3 mr-1" />AI 学习生成</Button>
-              <Button variant={createMode === "manual" ? "default" : "outline"} size="sm" onClick={() => setCreateMode("manual")}><FileText className="h-3 w-3 mr-1" />手动编写</Button>
+              <Button variant={createMode === "ai" ? "primary" : "outline"} size="sm" onClick={() => setCreateMode("ai")}><Sparkles className="h-3 w-3 mr-1" />AI 学习生成</Button>
+              <Button variant={createMode === "manual" ? "primary" : "outline"} size="sm" onClick={() => setCreateMode("manual")}><FileText className="h-3 w-3 mr-1" />手动编写</Button>
             </div>
             <div>
               <Label>版本名称</Label>
@@ -119,13 +122,13 @@ export function PromptManager() {
                 </div>
               </>
             )}
-            <div className="flex gap-2">
-              <Button onClick={handleCreate} disabled={createMutation.isPending}><Sparkles className="h-4 w-4 mr-1" />{createMutation.isPending ? "生成中..." : createMode === "ai" ? "AI 学习生成" : "保存"}</Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+            <Button onClick={handleCreate} disabled={createMutation.isPending}><Sparkles className="h-4 w-4 mr-1" />{createMutation.isPending ? "生成中..." : createMode === "ai" ? "AI 学习生成" : "保存"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-3">
         {versionList.length === 0 ? (
@@ -138,7 +141,7 @@ export function PromptManager() {
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-medium">{v.name as string}</h3>
                     {v.isActive && <Badge className="bg-green-100 text-green-700"><CheckCircle2 className="h-3 w-3 mr-1" />当前使用</Badge>}
-                    {v.isDefault && <Badge variant="outline">默认</Badge>}
+                    {v.isDefault && <Badge status="info">默认</Badge>}
                   </div>
                   {v.styleDescription && <p className="text-sm text-gray-500">{(v.styleDescription as string).slice(0, 100)}</p>}
                 </div>

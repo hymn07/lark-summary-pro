@@ -96,7 +96,7 @@ export type UserModelAccessScalarFieldEnum = z.infer<typeof UserModelAccessScala
 
 // File: UserSettingsScalarFieldEnum.schema.ts
 
-export const UserSettingsScalarFieldEnumSchema = z.enum(['id', 'userId', 'autoEnabled', 'saveFolderToken', 'exclusionRules', 'specialRequirements', 'activePromptVersionId', 'createdAt', 'updatedAt'])
+export const UserSettingsScalarFieldEnumSchema = z.enum(['id', 'userId', 'autoEnabled', 'saveFolderToken', 'extraInstructions', 'activePromptVersionId', 'createdAt', 'updatedAt'])
 
 export type UserSettingsScalarFieldEnum = z.infer<typeof UserSettingsScalarFieldEnumSchema>;
 
@@ -422,8 +422,7 @@ export const UserSettingsSchema = z.object({
   userId: z.string(),
   autoEnabled: z.boolean().default(true),
   saveFolderToken: z.string().nullish(),
-  exclusionRules: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("[]"),
-  specialRequirements: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("[]"),
+  extraInstructions: z.string().nullish(),
   activePromptVersionId: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
