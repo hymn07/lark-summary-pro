@@ -47,11 +47,43 @@ export function MeetingRecordsList() {
 
   const generateMutation = useMutation({
     mutationFn: (feishuMeetingId: string) => orpcClient.meetings.generate({ feishuMeetingId }),
-    onSuccess: () => {
-      toast.success("纪要生成完成");
-      queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuList.queryKey() });
+    onMutate: async (feishuMeetingId) => {
+      // 乐观更新：在会议记录中立刻显示"处理中"
+      const queryKey = orpc.meetings.feishuList.queryKey();
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData(queryKey);
+      queryClient.setQueryData(queryKey, (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((m: Record<string, unknown>) => {
+          if (m.id === feishuMeetingId) {
+            const existingRecords = (m.meetingRecords as Array<Record<string, unknown>>) ?? [];
+            return {
+              ...m,
+              meetingRecords: [{ id: "optimistic", status: "processing", createdAt: new Date().toISOString() }, ...existingRecords],
+            };
+          }
+          return m;
+        });
+      });
+      return { previous };
     },
-    onError: (e) => toast.error(`生成失败: ${e instanceof Error ? e.message : "未知错误"}`),
+    onSuccess: (data, feishuMeetingId) => {
+      const results = data as Array<{ status: string }> | undefined;
+      if (!results || results.length === 0) {
+        toast.warning("已跳过：无匹配用户");
+      } else if (results.some((r) => r.status === "completed")) {
+        toast.success("纪要生成完成");
+      } else {
+        toast.warning("处理完成");
+      }
+    },
+    onError: (e) => {
+      toast.error(`生成失败: ${e instanceof Error ? e.message : "未知错误"}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuList.queryKey() });
+      queryClient.invalidateQueries({ queryKey: orpc.meetings.list.queryKey() });
+    },
   });
 
   if (isLoading) return <MeetingRecordsSkeleton />;
@@ -191,7 +223,12 @@ function MeetingCard({
 
           {/* Status indicator */}
           <div className="flex items-center gap-2">
-            {records.length > 0 ? (
+            {records.some((r) => r.status === "processing") ? (
+              <Badge className="bg-blue-100 text-blue-700">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                处理中...
+              </Badge>
+            ) : records.length > 0 ? (
               <Badge className="bg-green-100 text-green-700">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 已生成 {records.length} 份纪要

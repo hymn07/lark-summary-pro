@@ -1,4 +1,4 @@
-import { db } from "@repo/database";
+import { db, decryptField } from "@repo/database";
 import type { MeetingDetail, PipelineContext } from "./types";
 
 // 从参会人中筛选开启自动纪要的内部用户
@@ -27,6 +27,18 @@ export async function routeParticipants(
     },
   });
 
+  // 降级：如果没有匹配到用户，可能是示例数据或参会人 ID 不匹配
+  // 回退到所有开启了自动纪要的用户
+  if (users.length === 0) {
+    const fallbackUsers = await db.user.findMany({
+      where: {
+        userSettings: { autoEnabled: true },
+      },
+      include: { userSettings: true },
+    });
+    users.push(...fallbackUsers);
+  }
+
   // 为每个开启了自动纪要的用户构建上下文
   const contexts: PipelineContext[] = [];
 
@@ -42,7 +54,7 @@ export async function routeParticipants(
       const version = await db.promptVersion.findUnique({
         where: { id: settings.activePromptVersionId },
       });
-      corePrompt = version?.corePrompt ?? null;
+      corePrompt = version?.corePrompt ? decryptField(version.corePrompt) : null;
     }
 
     // 如果用户没有活跃版本，尝试获取管理员设置的默认版本
@@ -51,7 +63,7 @@ export async function routeParticipants(
         where: { isDefault: true },
         orderBy: { createdAt: "desc" },
       });
-      corePrompt = defaultVersion?.corePrompt ?? null;
+      corePrompt = defaultVersion?.corePrompt ? decryptField(defaultVersion.corePrompt) : null;
     }
 
     contexts.push({

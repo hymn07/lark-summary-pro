@@ -1,5 +1,5 @@
 // 业务逻辑入口
-export { handleMeetingEnded } from "./pipeline";
+export { handleMeetingEnded, generateForUser } from "./pipeline";
 export { fetchMeetingDetail, fetchTranscriptContent } from "./meeting-fetcher";
 export { routeParticipants } from "./participant-router";
 export { runPreRoute } from "./pre-router";

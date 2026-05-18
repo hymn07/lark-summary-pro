@@ -179,10 +179,10 @@ export const auth = betterAuth({
           providerId: "lark",
           clientId: process.env.FEISHU_APP_ID as string,
           clientSecret: process.env.FEISHU_APP_SECRET as string,
-          authorizationUrl: "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+          authorizationUrl: "https://accounts.feishu.cn/open-apis/authen/v1/authorize?prompt=consent",
           tokenUrl: "https://open.feishu.cn/open-apis/authen/v2/oauth/token",
           userInfoUrl: "https://open.feishu.cn/open-apis/authen/v1/user_info",
-          scopes: ["auth:user.id:read", "offline_access", "minutes:minutes.search:read"],
+          scopes: ["auth:user.id:read", "offline_access", "minutes:minutes.search:read", "drive:drive", "docx:document", "vc:meeting.search:read"],
           redirectURI: process.env.FEISHU_REDIRECT_URI as string,
           authentication: "post",
           getToken: async ({ code, redirectURI }) => {
@@ -214,7 +214,7 @@ export const auth = betterAuth({
             const data = await res.json();
             const userData = data.data ?? data;
             return {
-              id: userData.user_id ?? userData.open_id ?? userData.union_id,
+              id: userData.open_id ?? userData.user_id ?? userData.union_id,
               name: userData.name ?? "",
               email: userData.email ?? `${userData.user_id}@feishu.local`,
               emailVerified: true,

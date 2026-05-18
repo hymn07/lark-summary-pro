@@ -2,27 +2,46 @@ import { db } from "@repo/database";
 import type { MeetingDetail, MeetingParticipant } from "./types";
 import { getTenantAccessToken } from "./feishu-client";
 
+// 从 FeishuMeeting 缓存构建 MeetingDetail
+function buildDetailFromCache(cached: {
+  meetingId: string;
+  topic: string | null;
+  startTime: Date | null;
+  endTime: Date | null;
+  hostUserId: string | null;
+  participantCount: number | null;
+  participantsJson: unknown;
+}): MeetingDetail {
+  const participants = (cached.participantsJson as MeetingParticipant[]) ?? [];
+  return {
+    id: cached.meetingId,
+    topic: cached.topic,
+    startTime: cached.startTime ? String(Math.floor(cached.startTime.getTime() / 1000)) : null,
+    endTime: cached.endTime ? String(Math.floor(cached.endTime.getTime() / 1000)) : null,
+    hostUserId: cached.hostUserId,
+    participantCount: cached.participantCount ?? participants.length,
+    participants,
+    transcriptDocToken: null,
+  };
+}
+
 // 调用飞书 API 获取会议详情和逐字稿
 // 使用 tenant_access_token（应用身份），可拉取企业内任意会议
+// API 失败时回退到 FeishuMeeting 缓存
 export async function fetchMeetingDetail(meetingId: string): Promise<MeetingDetail | null> {
-  // 手动上传的会议：从缓存读取
+  // 先查缓存
+  const cached = await db.feishuMeeting.findUnique({ where: { meetingId } });
+
+  // 手动上传的会议：直接从缓存读取
   if (meetingId.startsWith("manual-")) {
-    const cached = await db.feishuMeeting.findUnique({ where: { meetingId } });
-    if (!cached) return null;
-    return {
-      id: cached.meetingId,
-      topic: cached.topic,
-      startTime: cached.startTime ? String(Math.floor(cached.startTime.getTime() / 1000)) : null,
-      endTime: cached.endTime ? String(Math.floor(cached.endTime.getTime() / 1000)) : null,
-      hostUserId: cached.hostUserId,
-      participantCount: cached.participantCount ?? 1,
-      participants: [],
-      transcriptDocToken: null, // 不走飞书 API，直接读 transcriptText
-    };
+    return cached ? buildDetailFromCache(cached) : null;
   }
 
   const token = await getTenantAccessToken();
-  if (!token) return null;
+  if (!token) {
+    // 无 token 时回退到缓存
+    return cached ? buildDetailFromCache(cached) : null;
+  }
 
   try {
     const res = await fetch(
@@ -30,11 +49,16 @@ export async function fetchMeetingDetail(meetingId: string): Promise<MeetingDeta
       { headers: { Authorization: `Bearer ${token}` } },
     );
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // API 失败回退到缓存
+      return cached ? buildDetailFromCache(cached) : null;
+    }
 
     const json = await res.json();
     const meeting = json.data?.meeting;
-    if (!meeting) return null;
+    if (!meeting) {
+      return cached ? buildDetailFromCache(cached) : null;
+    }
 
     return {
       id: meeting.id,
@@ -55,7 +79,8 @@ export async function fetchMeetingDetail(meetingId: string): Promise<MeetingDeta
       transcriptDocToken: meeting.related_artifacts?.verbatim_doc_token ?? null,
     };
   } catch {
-    return null;
+    // 异常回退到缓存
+    return cached ? buildDetailFromCache(cached) : null;
   }
 }
 

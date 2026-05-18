@@ -2,16 +2,16 @@
 
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { orpcClient } from "@shared/lib/orpc-client";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
-import { Input } from "@repo/ui/components/input";
-import { Label } from "@repo/ui/components/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@repo/ui/components/dialog";
 import { Switch } from "@repo/ui/components/switch";
 import { Textarea } from "@repo/ui/components/textarea";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { toast } from "sonner";
-import { Save, Settings2 } from "lucide-react";
-import { useState } from "react";
+import { FolderOpen, Save, Settings2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { PromptStyleDialog } from "./PromptStyleDialog";
 
 export function SettingsForm() {
@@ -96,13 +96,7 @@ export function SettingsForm() {
           <CardTitle>保存位置</CardTitle>
         </CardHeader>
         <CardContent>
-          <Label>飞书文件夹 Token</Label>
-          <Input
-            value={saveFolderToken}
-            onChange={(e) => setSaveFolderToken(e.target.value)}
-            placeholder="留空则保存到根目录"
-            className="mt-1"
-          />
+          <FolderPicker token={saveFolderToken} onSelect={setSaveFolderToken} />
         </CardContent>
       </Card>
 
@@ -112,6 +106,80 @@ export function SettingsForm() {
       </Button>
 
       <PromptStyleDialog open={showStyleDialog} onOpenChange={setShowStyleDialog} />
+    </div>
+  );
+}
+
+function FolderPicker({ token, onSelect }: { token: string; onSelect: (token: string) => void }) {
+  const [show, setShow] = useState(false);
+  const [folders, setFolders] = useState<Array<{ token: string; name: string }>>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadFolders = async () => {
+    setLoading(true);
+    try {
+      const data = await orpcClient.settings.listFolders({}) as Array<{ token: string; name: string; type: string }>;
+      setFolders(data.filter((f) => f.type === "folder"));
+    } catch {
+      toast.error("获取文件夹列表失败，请确保已登录飞书");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { if (show) loadFolders(); }, [show]);
+
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-500 flex-1 truncate">
+          {token ? `已选择文件夹: ${token}` : "未选择（默认保存到根目录）"}
+        </span>
+        <Button variant="outline" size="sm" onClick={() => setShow(true)}>
+          <FolderOpen className="h-4 w-4 mr-1" />选择文件夹
+        </Button>
+        {token && (
+          <Button variant="ghost" size="sm" onClick={() => onSelect("")}>
+            清除
+          </Button>
+        )}
+      </div>
+
+      <Dialog open={show} onOpenChange={setShow}>
+        <DialogContent className="max-w-md max-h-[60vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>选择保存文件夹</DialogTitle>
+          </DialogHeader>
+          {loading ? (
+            <p className="text-sm text-gray-400 text-center py-8">加载中...</p>
+          ) : folders.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <p>没有找到文件夹</p>
+              <p className="text-xs mt-1">请先在飞书中创建文件夹</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <button
+                type="button"
+                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 ${!token ? "bg-blue-50 text-blue-700" : ""}`}
+                onClick={() => { onSelect(""); setShow(false); }}
+              >
+                📁 根目录（默认）
+              </button>
+              {folders.map((f) => (
+                <button
+                  key={f.token}
+                  type="button"
+                  className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 truncate ${token === f.token ? "bg-blue-50 text-blue-700" : ""}`}
+                  onClick={() => { onSelect(f.token); setShow(false); }}
+                >
+                  📁 {f.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

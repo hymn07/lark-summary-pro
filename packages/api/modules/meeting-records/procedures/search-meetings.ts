@@ -12,7 +12,15 @@ export const listFeishuMeetings = protectedProcedure
     tags: ["Meeting Records"],
     summary: "获取会议列表（飞书 + 手动）",
   })
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    // 后台同步：用用户 token 拉取最近 90 天会议+妙记
+    const { syncUserMeetings } = await import("@repo/lark-meeting/meeting-search");
+    const account = await db.account.findFirst({
+      where: { userId: context.user.id, providerId: "lark" },
+    });
+    if (account?.accessToken) {
+      syncUserMeetings(account.accessToken).catch((e) => console.error("[Sync] 后台同步失败:", e));
+    }
     return getCachedMeetings(50);
   });
 
@@ -108,7 +116,7 @@ export const createManualMeeting = protectedProcedure
     return meeting;
   });
 
-// 为指定会议生成纪要（飞书或手动）
+// 为指定会议生成纪要（手动触发，直接给当前用户生成）
 export const generateForMeeting = protectedProcedure
   .route({
     method: "POST",
@@ -121,34 +129,49 @@ export const generateForMeeting = protectedProcedure
     const fm = await db.feishuMeeting.findUnique({ where: { id: input.feishuMeetingId } });
     if (!fm) throw new ORPCError("NOT_FOUND");
 
-    // 手动上传的会议：直接用缓存的逐字稿
-    if (fm.source === "manual") {
-      const { handleMeetingEnded } = await import("@repo/lark-meeting");
-      const result = await handleMeetingEnded({
-        meeting: {
-          id: fm.meetingId,
-          topic: fm.topic ?? "未命名会议",
-          meetingSource: 1,
-          startTime: String(Math.floor((fm.startTime?.getTime() ?? Date.now()) / 1000)),
-          endTime: String(Math.floor((fm.endTime?.getTime() ?? Date.now()) / 1000)),
-        },
-      });
-      return result;
-    }
-
-    // 飞书会议：用 event 触发 pipeline
-    const { handleMeetingEnded } = await import("@repo/lark-meeting");
-    const result = await handleMeetingEnded({
-      meeting: {
-        id: fm.meetingId,
-        topic: fm.topic ?? "未知会议",
-        meetingSource: 1,
-        startTime: String(Math.floor((fm.startTime?.getTime() ?? Date.now()) / 1000)),
-        endTime: String(Math.floor((fm.endTime?.getTime() ?? Date.now()) / 1000)),
+    // Step 0: 先创建"处理中"记录，让 UI 立即看到状态
+    const processingRecord = await db.meetingRecord.create({
+      data: {
+        meetingId: fm.meetingId,
+        topic: fm.topic ?? "未命名会议",
+        startTime: fm.startTime,
+        endTime: fm.endTime,
+        participantCount: fm.participantCount ?? 0,
+        status: "processing",
+        userId: context.user.id,
       },
     });
 
-    return result;
+    try {
+      // 手动生成：直接用 generateForUser，不经过参会人路由
+      const { generateForUser } = await import("@repo/lark-meeting");
+      const result = await generateForUser(fm.meetingId, context.user.id);
+
+      if (result.status === "completed") {
+        await db.meetingRecord.delete({ where: { id: processingRecord.id } });
+        return [result];
+      }
+
+      // 未完成 → 更新处理中记录
+      await db.meetingRecord.update({
+        where: { id: processingRecord.id },
+        data: {
+          status: result.status === "failed" ? "failed" : "skipped",
+          errorMessage: result.errorMessage ?? null,
+          skippedReason: result.skippedReason ?? null,
+        },
+      });
+      return [result];
+    } catch (e) {
+      await db.meetingRecord.update({
+        where: { id: processingRecord.id },
+        data: {
+          status: "failed",
+          errorMessage: e instanceof Error ? e.message : "流水线执行失败",
+        },
+      });
+      throw e;
+    }
   });
 
 // 删除会议记录（软删除）

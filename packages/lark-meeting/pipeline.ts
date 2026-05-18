@@ -1,4 +1,4 @@
-import { db } from "@repo/database";
+import { db, decryptField } from "@repo/database";
 import type { FeishuMeetingEndedEvent, PipelineContext, ProcessResult } from "./types";
 import { fetchMeetingDetail } from "./meeting-fetcher";
 import { routeParticipants } from "./participant-router";
@@ -7,7 +7,96 @@ import { assemblePrompt } from "./prompt-assembler";
 import { generateMinutes } from "./llm-generator";
 import { createFeishuDoc } from "./doc-creator";
 
-// 主入口：飞书事件 → 多份纪要
+// 手动生成：指定用户在指定会议直接生成纪要（不经过参会人路由）
+export async function generateForUser(
+  meetingId: string,
+  userId: string,
+): Promise<ProcessResult> {
+  const log = (msg: string) => console.log(`[ManualPipeline ${meetingId}] ${msg}`);
+
+  log("获取会议详情...");
+  const detail = await fetchMeetingDetail(meetingId);
+  if (!detail) {
+    return { status: "failed", errorMessage: "无法获取会议详情" };
+  }
+
+  // 构建当前用户的上下文
+  const settings = await db.userSettings.findUnique({ where: { userId } });
+  if (!settings || !settings.autoEnabled) {
+    return { status: "skipped", skippedReason: "未开启自动纪要" };
+  }
+
+  let corePrompt: string | null = null;
+  if (settings.activePromptVersionId) {
+    const version = await db.promptVersion.findUnique({
+      where: { id: settings.activePromptVersionId },
+    });
+    corePrompt = version?.corePrompt ? decryptField(version.corePrompt) : null;
+  }
+  if (!corePrompt) {
+    const defaultVersion = await db.promptVersion.findFirst({
+      where: { isDefault: true },
+      orderBy: { createdAt: "desc" },
+    });
+    corePrompt = defaultVersion?.corePrompt ? decryptField(defaultVersion.corePrompt) : null;
+  }
+
+  const ctx: PipelineContext = {
+    meetingId: detail.id,
+    userId,
+    userSettings: {
+      autoEnabled: settings.autoEnabled,
+      saveFolderToken: settings.saveFolderToken,
+      extraInstructions: settings.extraInstructions ?? null,
+      activePromptVersionId: settings.activePromptVersionId,
+    },
+    corePrompt,
+  };
+
+  try {
+    // Step 2: 前置路由
+    log("前置路由...");
+    const preRoute = await runPreRoute(detail, ctx);
+    if (preRoute.shouldSkip) {
+      const record = await createMeetingRecord(ctx, detail, "skipped", null, preRoute.skipReason);
+      return { status: "skipped", meetingRecordId: record.id, skippedReason: preRoute.skipReason };
+    }
+
+    // Step 3: Prompt 组装
+    log("Prompt 组装...");
+    const prompt = await assemblePrompt(ctx, preRoute.extractedRequirements);
+
+    // Step 4: LLM 生成
+    log("LLM 生成...");
+    const minutes = await generateMinutes(detail, prompt);
+    if (!minutes) {
+      await createMeetingRecord(ctx, detail, "failed", null, undefined, "LLM 生成失败");
+      return { status: "failed", errorMessage: "LLM 生成失败" };
+    }
+    log(`LLM 完成: ${minutes.title}`);
+
+    // Step 5: 创建飞书文档（用 user token）
+    log("创建飞书文档...");
+    const docUrl = await createFeishuDoc(ctx, minutes, userId);
+    if (!docUrl) {
+      await createMeetingRecord(ctx, detail, "failed", null, undefined, "文档创建失败");
+      return { status: "failed", errorMessage: "文档创建失败" };
+    }
+    log(`文档创建: ${docUrl}`);
+
+    // Step 6: 记录成功
+    const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes.summary);
+    await createProcessingLog(record.id, "completed", "success", "纪要生成成功");
+    return { status: "completed", meetingRecordId: record.id, docUrl };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "未知错误";
+    log(`处理失败: ${errorMessage}`);
+    await createMeetingRecord(ctx, detail, "failed", null, undefined, errorMessage);
+    return { status: "failed", errorMessage };
+  }
+}
+
+// 主入口：飞书事件 → 多份纪要（自动触发）
 export async function handleMeetingEnded(
   event: FeishuMeetingEndedEvent,
 ): Promise<ProcessResult[]> {
@@ -73,9 +162,9 @@ export async function handleMeetingEnded(
       }
       userLog(`Step 4 完成: ${minutes.title}`);
 
-      // Step 5: 创建飞书文档
+      // Step 5: 创建飞书文档（传 userId：优先用户 token，降级 tenant + transfer）
       userLog("Step 5: 创建飞书文档...");
-      const docUrl = await createFeishuDoc(ctx, minutes);
+      const docUrl = await createFeishuDoc(ctx, minutes, ctx.userId);
       if (!docUrl) {
         userLog("Step 5 失败");
         await createMeetingRecord(ctx, detail, "failed", null, undefined, "文档创建失败");
@@ -85,7 +174,7 @@ export async function handleMeetingEnded(
       userLog(`Step 5 完成: ${docUrl}`);
 
       // Step 6: 记录成功
-      const record = await createMeetingRecord(ctx, detail, "completed", docUrl);
+      const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes.summary);
       results.push({ status: "completed", meetingRecordId: record.id, docUrl });
       userLog("Step 6 完成: 纪要已保存");
 
@@ -109,6 +198,7 @@ async function createMeetingRecord(
   docUrl: string | null,
   skippedReason?: string,
   errorMessage?: string,
+  aiSummary?: string,
 ) {
   return db.meetingRecord.create({
     data: {
@@ -122,6 +212,7 @@ async function createMeetingRecord(
       userId: ctx.userId,
       promptVersionId: ctx.corePrompt ? ctx.userSettings?.activePromptVersionId : null,
       docUrl,
+      aiSummary,
       skippedReason,
       errorMessage,
     },

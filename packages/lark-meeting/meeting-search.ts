@@ -137,6 +137,143 @@ export async function cacheMeeting(
   });
 }
 
+// 同步用户最近 90 天的飞书会议和妙记到缓存
+export async function syncUserMeetings(userAccessToken: string, days = 90) {
+  const endTime = new Date().toISOString();
+  const startTime = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  console.log(`[Sync] 同步最近 ${days} 天会议: ${startTime.slice(0, 10)} ~ ${endTime.slice(0, 10)}`);
+
+  // Step 1: 搜索会议列表（user token）
+  const meetingRes = await fetch("https://open.feishu.cn/open-apis/vc/v1/meetings/search", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${userAccessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      page_size: 30,
+      meeting_filter: { start_time: { start_time: startTime, end_time: endTime } },
+    }),
+  });
+
+  let meetings: { id: string; topic?: string; meeting_no?: string; start_time?: string; end_time?: string }[] = [];
+  if (meetingRes.ok) {
+    const mj = await meetingRes.json();
+    meetings = mj.data?.items ?? [];
+    console.log(`[Sync] 找到 ${meetings.length} 个会议`);
+  } else {
+    console.log(`[Sync] 搜索会议失败: ${meetingRes.status}`);
+    return [];
+  }
+
+  // Step 2: 逐个获取会议详情和录制（tenant token）
+  const { getTenantAccessToken } = await import("./feishu-client");
+  const tenantToken = await getTenantAccessToken();
+  const cached: string[] = [];
+
+  for (const m of meetings) {
+    try {
+      const meetingId = m.id;
+
+      // 检查是否已缓存
+      const existing = await db.feishuMeeting.findUnique({
+        where: { meetingId },
+        select: { id: true, noteDocToken: true, participantsJson: true, transcriptText: true },
+      });
+      const hasTranscript = existing?.transcriptText;
+      const hasParticipants = existing?.participantsJson;
+      const hasNoteToken = existing?.noteDocToken;
+
+      // 获取会议详情（补充参与者）
+      let participants: Record<string, unknown>[] = [];
+      let topic = m.topic ?? null;
+      if (!hasParticipants && tenantToken) {
+        const detail = await getMeetingDetail(meetingId);
+        if (detail) {
+          topic = detail.topic ?? topic;
+          participants = detail.participants.map((p) => ({
+            userId: p.userId,
+            userName: p.userName ?? "未知",
+            isHost: p.isHost,
+            isExternal: p.isExternal,
+          }));
+        }
+      }
+
+      // 获取录制 URL（就是妙记链接）
+      let noteDocToken: string | null = hasNoteToken ?? null;
+      if (!noteDocToken && tenantToken) {
+        const recRes = await fetch(
+          `https://open.feishu.cn/open-apis/vc/v1/meetings/${meetingId}/recording`,
+          { headers: { Authorization: `Bearer ${tenantToken}` } },
+        );
+        if (recRes.ok) {
+          const rj = await recRes.json();
+          const recUrl: string | undefined = rj.data?.recording?.url;
+          if (recUrl) {
+            // 从 URL 提取妙记 token: https://meetings.feishu.cn/minutes/obcnnvwpkols4a698zgz21i9
+            const tokenMatch = recUrl.match(/\/minutes\/([a-zA-Z0-9]+)/);
+            if (tokenMatch) {
+              noteDocToken = tokenMatch[1];
+            }
+          }
+        }
+      }
+
+      // 尝试获取逐字稿（如果还没有）
+      let transcriptText: string | undefined;
+      if (!hasTranscript && noteDocToken && tenantToken) {
+        try {
+          const docToken = noteDocToken; // 妙记 token 也可用于读取内容
+          const contentRes = await fetch(
+            `https://open.feishu.cn/open-apis/docx/v1/documents/${docToken}/raw_content`,
+            { headers: { Authorization: `Bearer ${tenantToken}` } },
+          );
+          if (contentRes.ok) {
+            const cj = await contentRes.json();
+            if (cj.data?.content) {
+              transcriptText = cj.data.content;
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
+      // Upsert 到缓存
+      await db.feishuMeeting.upsert({
+        where: { meetingId },
+        update: {
+          topic,
+          meetingNo: m.meeting_no ?? null,
+          startTime: m.start_time ? new Date(Number(m.start_time) * 1000) : null,
+          endTime: m.end_time ? new Date(Number(m.end_time) * 1000) : null,
+          ...(participants.length > 0 ? { participantsJson: participants, participantCount: participants.length } : {}),
+          ...(noteDocToken && !hasNoteToken ? { noteDocToken } : {}),
+          ...(transcriptText ? { transcriptText, transcriptFetched: true } : {}),
+        },
+        create: {
+          meetingId,
+          topic,
+          meetingNo: m.meeting_no ?? null,
+          source: "feishu",
+          startTime: m.start_time ? new Date(Number(m.start_time) * 1000) : null,
+          endTime: m.end_time ? new Date(Number(m.end_time) * 1000) : null,
+          participantsJson: participants,
+          participantCount: participants.length,
+          noteDocToken,
+          transcriptText,
+          transcriptFetched: !!transcriptText,
+        },
+      });
+      cached.push(meetingId);
+      console.log(`[Sync] 已缓存: ${topic ?? meetingId} 妙记=${noteDocToken?.slice(0, 8) ?? "无"}${transcriptText ? " 逐字稿=" + transcriptText.length + "字" : ""}`);
+    } catch (e) {
+      console.error(`[Sync] 缓存失败 ${m.id}:`, e);
+    }
+  }
+
+  return cached;
+}
+
 // 获取缓存的会议列表（飞书 + 手动，不包含已删除）
 export async function getCachedMeetings(limit = 50) {
   return db.feishuMeeting.findMany({
