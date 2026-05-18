@@ -1,6 +1,6 @@
 import { db } from "@repo/database";
 import type { MeetingDetail, MeetingParticipant } from "./types";
-import { getTenantAccessToken } from "./feishu-client";
+import { getTenantAccessToken, batchGetUserNames } from "./feishu-client";
 
 // 从 FeishuMeeting 缓存构建 MeetingDetail
 function buildDetailFromCache(cached: {
@@ -60,6 +60,30 @@ export async function fetchMeetingDetail(meetingId: string): Promise<MeetingDeta
       return cached ? buildDetailFromCache(cached) : null;
     }
 
+    // 从 VC API 解析参会人
+    const rawParticipants: MeetingParticipant[] = (meeting.participants ?? []).map(
+      (p: Record<string, unknown>) =>
+        ({
+          userId: p.id as string,
+          userName: (p.name as string) ?? null,
+          isHost: (p.is_host as boolean) ?? false,
+          isExternal: (p.is_external as boolean) ?? false,
+        }) satisfies MeetingParticipant,
+    );
+
+    // 批量查询参会人姓名（VC API 不保证返回姓名）
+    const unknownIds = rawParticipants
+      .filter((p) => !p.isExternal && !p.userName)
+      .map((p) => p.userId);
+    if (unknownIds.length > 0) {
+      const nameMap = await batchGetUserNames(unknownIds);
+      for (const p of rawParticipants) {
+        if (!p.userName && nameMap.has(p.userId)) {
+          p.userName = nameMap.get(p.userId)!;
+        }
+      }
+    }
+
     return {
       id: meeting.id,
       topic: meeting.topic ?? null,
@@ -67,15 +91,7 @@ export async function fetchMeetingDetail(meetingId: string): Promise<MeetingDeta
       endTime: meeting.end_time ?? null,
       hostUserId: meeting.host_user?.id ?? null,
       participantCount: Number(meeting.participant_count ?? 0),
-      participants: (meeting.participants ?? []).map(
-        (p: Record<string, unknown>) =>
-          ({
-            userId: p.id as string,
-            userName: (p.name as string) ?? null,
-            isHost: (p.is_host as boolean) ?? false,
-            isExternal: (p.is_external as boolean) ?? false,
-          }) satisfies MeetingParticipant,
-      ),
+      participants: rawParticipants,
       transcriptDocToken: meeting.related_artifacts?.verbatim_doc_token ?? null,
     };
   } catch {

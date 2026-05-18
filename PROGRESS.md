@@ -9,15 +9,15 @@
 - 软删除：FeishuMeeting + MeetingRecord 均有 isDeleted 字段，查询自动过滤
 
 ### 业务逻辑包 packages/lark-meeting/
-- pipeline.ts：7 步流水线 + generateForUser（手动生成，不调参会人路由）+ handleMeetingEnded（自动触发）
-- meeting-fetcher.ts：飞书 API 调用，API 失败回退缓存
-- meeting-search.ts：妙记搜索 + 缓存 + syncUserMeetings（登录时同步90天会议+recording API关联妙记）
-- feishu-client.ts：tenant_access_token 获取（带缓存）
+- pipeline.ts：7 步流水线 + generateForUser（手动生成）+ handleMeetingEnded（自动触发，含批量省成本路径）
+- meeting-fetcher.ts：飞书 API 调用 + 参会人姓名批量查询（contact/v3/users/basic_batch），API 失败回退缓存
+- meeting-search.ts：妙记搜索 + 缓存 + syncUserMeetings + 参会人姓名批量查询
+- feishu-client.ts：tenant_access_token 获取 + batchGetUserNames + addDocCollaborator
 - participant-router.ts：参会人路由 + 无匹配时回退 autoEnabled 用户
 - pre-router.ts：前置路由（LLM 判断跳过/提取要求）
 - prompt-assembler.ts：Prompt 组装（decryptField 解密）
 - llm-generator.ts：generateText+JSON.parse（DeepSeek 兼容）
-- doc-creator.ts：三层降级创建（user token → tenant+transfer_owner → tenant only）
+- doc-creator.ts：纯 tenant token 创建 + 用户协作者（不再用 user token 创建/transfer_owner）
 - model-factory.ts：DeepSeek flash/pro
 - sample-learner.ts：举一反三学习
 - event-listener.ts：飞书事件 WebSocket 长连接
@@ -37,14 +37,18 @@
 - 手动添加会议 Dialog：上传逐字稿 + 时间 + 参会人 + 链接
 - 管理后台：返回导航 + 成员/模型/Prompt 管理
 
-### 文档创建策略
+### 文档创建策略（2026-05-19 更新）
 ```
-类型                Token              文档归属      触发
-──────────────────────────────────────────────────────
-手动生成 ● 纪要     user_access_token   用户所有      用户点击
-自动触发（事件）    user → tenant+transfer 用户所有  飞书事件
-降级失败            tenant_access_token  应用所有      兜底
+所有文档统一 tenant_access_token 创建（应用下）+ 当前用户 addDocCollaborator（full_access）
+批量路径：N 人默认模板+无额外指令 → 1 次 LLM → N 份文档各加协作者
+个性路径：不同模板或有额外指令 → 每人独立 LLM + 独立文档
 ```
+
+### 文档创建 + 参会人 + 批量省成本 — 2026-05-19
+- doc-creator：砍掉三层降级，纯 tenant_access_token + addDocCollaborator
+- feishu-client：新增 batchGetUserNames（contact/v3/users/basic_batch）+ addDocCollaborator（drive/v1/permissions）
+- meeting-fetcher + meeting-search：参会人姓名批量查询，解决"未知"显示
+- pipeline：handleMeetingEnded 增加批量路径，默认模板+无额外指令的用户共享 1 次 LLM
 
 ### 会议同步策略
 ```
@@ -59,7 +63,6 @@
 
 - [ ] 事件监听器启动（`scripts/event-listener.ts`）
 - [ ] 真实飞书会议端到端测试
-- [ ] transfer_owner 测试（需重新登录后 open_id 生效）
 - [ ] 文档 Block 写入 API 修复（目前 block_type 已修正，写入仍报 invalid param）
 - [ ] refresh_token 续期测试（code=20014）
 - [ ] 其他模型提供商支持

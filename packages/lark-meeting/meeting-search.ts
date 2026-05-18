@@ -1,5 +1,5 @@
 import { db } from "@repo/database";
-import { getTenantAccessToken } from "./feishu-client";
+import { getTenantAccessToken, batchGetUserNames } from "./feishu-client";
 
 // 搜索最近会议列表（需要 user_access_token）
 export async function searchMeetings(
@@ -68,6 +68,19 @@ export async function getMeetingDetail(meetingId: string): Promise<{
     isHost: (p.is_host ?? false) as boolean,
     isExternal: (p.is_external ?? false) as boolean,
   }));
+
+  // 批量查询参会人姓名（VC API 不保证返回姓名）
+  const unknownIds = (participants as Array<{ userId: string; userName: string | null; isExternal: boolean }>)
+    .filter((p) => !p.isExternal && !p.userName)
+    .map((p) => p.userId);
+  if (unknownIds.length > 0) {
+    const nameMap = await batchGetUserNames(unknownIds);
+    for (const p of participants) {
+      if (!p.userName && nameMap.has(p.userId)) {
+        p.userName = nameMap.get(p.userId)!;
+      }
+    }
+  }
 
   return {
     topic: meeting.topic ?? null,

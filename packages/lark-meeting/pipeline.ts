@@ -131,9 +131,60 @@ export async function handleMeetingEnded(
   }
   log(`Step 1.5 成功: 匹配到 ${contexts.length} 个用户`);
 
-  // Step 2-6: 对每个用户独立处理
-  for (const ctx of contexts) {
-    const userLog = (msg: string) => log(`[用户${ctx.userId}] ${msg}`);
+  // 拆分用户：批量组（默认模板+无额外指令）vs 个性组（其余）
+  const batchGroup = contexts.filter(
+    (c) => !c.userSettings?.activePromptVersionId && !c.userSettings?.extraInstructions?.trim(),
+  );
+  const individualGroup = contexts.filter(
+    (c) => c.userSettings?.activePromptVersionId || c.userSettings?.extraInstructions?.trim(),
+  );
+
+  // 批量组：共享 1 次 LLM，每人各建一份文档（省 LLM 成本，文档隔离）
+  if (batchGroup.length > 0) {
+    log(`批量组: ${batchGroup.length} 人（默认模板+无额外指令）→ 共享 1 次 LLM`);
+    const batchCtx = batchGroup[0];
+    try {
+      // 用默认模板组装 Prompt（无需前置路由，无额外指令）
+      const prompt = await assemblePrompt(batchCtx);
+      const minutes = await generateMinutes(detail, prompt);
+
+      if (!minutes) {
+        log("批量 LLM 生成失败");
+        for (const ctx of batchGroup) {
+          const record = await createMeetingRecord(ctx, detail, "failed", null, undefined, "LLM 生成失败");
+          results.push({ status: "failed", meetingRecordId: record.id, errorMessage: "LLM 生成失败" });
+        }
+      } else {
+        log(`批量 LLM 完成: ${minutes.title}`);
+        // 给每人各建一份文档 + 协作者
+        for (const ctx of batchGroup) {
+          const userLog = (msg: string) => log(`[批量/用户${ctx.userId}] ${msg}`);
+          const docUrl = await createFeishuDoc(ctx, minutes, ctx.userId);
+          if (!docUrl) {
+            userLog("文档创建失败");
+            const record = await createMeetingRecord(ctx, detail, "failed", null, undefined, "文档创建失败");
+            results.push({ status: "failed", meetingRecordId: record.id, errorMessage: "文档创建失败" });
+            continue;
+          }
+          userLog(`文档创建: ${docUrl}`);
+          const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes.summary);
+          results.push({ status: "completed", meetingRecordId: record.id, docUrl });
+          await createProcessingLog(record.id, "completed", "success", "纪要生成成功（批量）");
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "未知错误";
+      log(`批量处理失败: ${errorMessage}`);
+      for (const ctx of batchGroup) {
+        await createMeetingRecord(ctx, detail, "failed", null, undefined, errorMessage);
+        results.push({ status: "failed", errorMessage });
+      }
+    }
+  }
+
+  // 个性组：每人独立处理（不同模板或有个性指令）
+  for (const ctx of individualGroup) {
+    const userLog = (msg: string) => log(`[个性/用户${ctx.userId}] ${msg}`);
     try {
       // Step 2: 前置路由
       userLog("Step 2: 前置路由...");
@@ -162,7 +213,7 @@ export async function handleMeetingEnded(
       }
       userLog(`Step 4 完成: ${minutes.title}`);
 
-      // Step 5: 创建飞书文档（传 userId：优先用户 token，降级 tenant + transfer）
+      // Step 5: 创建飞书文档（tenant token + 协作者）
       userLog("Step 5: 创建飞书文档...");
       const docUrl = await createFeishuDoc(ctx, minutes, ctx.userId);
       if (!docUrl) {
