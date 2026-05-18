@@ -1,15 +1,16 @@
 import { db } from "@repo/database";
 
 async function main() {
-  // 查找已有用户
-  const users = await db.user.findMany({ take: 2 });
-  if (users.length === 0) {
+  // 查找飞书登录用户（非 system 用户）
+  const users = await db.user.findMany({ take: 10 });
+  const feishuUser = users.find((u) => u.email.includes("feishu")) || users[0];
+  if (!feishuUser) {
     console.log("❌ 数据库中没有用户，请先登录飞书创建用户");
     process.exit(1);
   }
 
-  const userId = users[0].id;
-  console.log(`✅ 使用用户: ${users[0].name} (${users[0].email})`);
+  const userId = feishuUser.id;
+  console.log(`✅ 使用用户: ${feishuUser.name} (${feishuUser.email})`);
 
   // 检查是否已有示例数据
   const existing = await db.feishuMeeting.findFirst({ where: { meetingId: "sample-feishu-001" } });
