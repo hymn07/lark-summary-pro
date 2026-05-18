@@ -9,7 +9,6 @@ import { Label } from "@repo/ui/components/label";
 import { Switch } from "@repo/ui/components/switch";
 import { Textarea } from "@repo/ui/components/textarea";
 import { Skeleton } from "@repo/ui/components/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { toast } from "sonner";
 import { Save, Settings2 } from "lucide-react";
 import { useState } from "react";
@@ -19,12 +18,10 @@ export function SettingsForm() {
   const { data: settings, isLoading } = useQuery(
     orpc.settings.get.queryOptions(),
   );
-  const { data: prompts } = useQuery(orpc.prompts.list.queryOptions());
 
   const [autoEnabled, setAutoEnabled] = useState(true);
   const [extraInstructions, setExtraInstructions] = useState("");
   const [saveFolderToken, setSaveFolderToken] = useState("");
-  const [activeVersionId, setActiveVersionId] = useState<string>("");
   const [showStyleDialog, setShowStyleDialog] = useState(false);
 
   // 加载已有设置
@@ -33,7 +30,6 @@ export function SettingsForm() {
       setAutoEnabled((settings as Record<string, unknown>).autoEnabled as boolean ?? true);
       setExtraInstructions((settings as Record<string, unknown>).extraInstructions as string ?? "");
       setSaveFolderToken((settings as Record<string, unknown>).saveFolderToken as string ?? "");
-      setActiveVersionId((settings as Record<string, unknown>).activePromptVersionId as string ?? "");
     }
   });
 
@@ -45,7 +41,6 @@ export function SettingsForm() {
         autoEnabled,
         extraInstructions: extraInstructions || null,
         saveFolderToken: saveFolderToken || null,
-        activePromptVersionId: activeVersionId || null,
       });
       toast.success("设置已保存");
     } catch {
@@ -83,29 +78,16 @@ export function SettingsForm() {
         </CardContent>
       </Card>
 
-      {/* 纪要风格 — 在保存位置前面 */}
+      {/* 纪要风格 */}
       <Card>
         <CardHeader>
-          <CardTitle>纪要风格</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>纪要风格</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => setShowStyleDialog(true)}>
+              <Settings2 className="h-4 w-4 mr-1" />管理纪要风格
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Select value={activeVersionId} onValueChange={setActiveVersionId}>
-            <SelectTrigger>
-              <SelectValue placeholder="选择纪要风格" />
-            </SelectTrigger>
-            <SelectContent>
-              {(prompts as unknown[] ?? []).map((p: Record<string, unknown>) => (
-                <SelectItem key={p.id as string} value={p.id as string}>
-                  {p.name as string}
-                  {p.styleDescription ? ` — ${p.styleDescription}` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={() => setShowStyleDialog(true)}>
-            <Settings2 className="h-4 w-4 mr-1" />管理纪要风格
-          </Button>
-        </CardContent>
       </Card>
 
       {/* 保存位置 */}
