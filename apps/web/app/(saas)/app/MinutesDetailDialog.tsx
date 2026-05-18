@@ -1,11 +1,13 @@
 "use client";
 
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@repo/ui/components/card";
+import { orpcClient } from "@shared/lib/orpc-client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@repo/ui/components/button";
 import { Badge } from "@repo/ui/components/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@repo/ui/components/dialog";
 import { Skeleton } from "@repo/ui/components/skeleton";
+import { toast } from "sonner";
 import {
   CheckCircle2,
   SkipForward,
@@ -14,6 +16,8 @@ import {
   ExternalLink,
   Clock,
   ArrowRight,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { useState } from "react";
 import { MeetingDetailDialog } from "./meetings/MeetingDetailDialog";
@@ -34,12 +38,24 @@ export function MinutesDetailDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery(
     id && open
       ? orpc.meetings.get.queryOptions({ input: { id } })
       : { queryKey: ["skip"], queryFn: () => null, enabled: false },
   );
   const [sourceMeetingId, setSourceMeetingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const deleteRecordMutation = useMutation({
+    mutationFn: (recordId: string) => orpcClient.meetings.deleteRecord({ id: recordId }),
+    onSuccess: () => {
+      toast.success("纪要已删除");
+      queryClient.invalidateQueries({ queryKey: orpc.meetings.list.queryKey() });
+      onOpenChange(false);
+    },
+    onError: (e) => toast.error(`删除失败: ${e instanceof Error ? e.message : "未知错误"}`),
+  });
 
   const r = data as Record<string, unknown> | null;
   const feishuMeeting = r?.feishuMeeting as Record<string, unknown> | null | undefined;
@@ -173,9 +189,40 @@ export function MinutesDetailDialog({
                     </button>
                   </div>
                 )}
+
+                {/* Delete button */}
+                <div className="pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={deleteRecordMutation.isPending}
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    删除纪要
+                  </Button>
+                </div>
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />确认删除
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">确定要删除这条会议纪要吗？</p>
+          <div className="flex gap-2 mt-4">
+            <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>取消</Button>
+            <Button variant="primary" size="sm" onClick={() => { setShowDeleteConfirm(false); deleteRecordMutation.mutate(id!); }}>
+              确认删除
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

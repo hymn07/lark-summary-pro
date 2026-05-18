@@ -140,11 +140,13 @@ export async function cacheMeeting(
 // 获取缓存的会议列表（飞书 + 手动）
 export async function getCachedMeetings(limit = 50) {
   return db.feishuMeeting.findMany({
+    where: { isDeleted: false },
     orderBy: { startTime: "desc" },
     take: limit,
     include: {
       _count: { select: { meetingRecords: true } },
       meetingRecords: {
+        where: { isDeleted: false },
         orderBy: { createdAt: "desc" },
         take: 5,
       },
