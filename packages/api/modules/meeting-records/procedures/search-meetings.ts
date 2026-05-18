@@ -80,7 +80,9 @@ export const createManualMeeting = protectedProcedure
       topic: z.string().min(1),
       transcriptText: z.string().min(1),
       startTime: z.string().optional(),
+      endTime: z.string().optional(),
       meetingUrl: z.string().optional(),
+      participants: z.array(z.object({ userId: z.string(), userName: z.string(), isHost: z.boolean(), isExternal: z.boolean() })).optional(),
     }),
   )
   .handler(async ({ input, context }) => {
@@ -96,6 +98,9 @@ export const createManualMeeting = protectedProcedure
         uploadedFileName: input.topic,
         meetingUrl: input.meetingUrl ?? null,
         startTime: input.startTime ? new Date(input.startTime) : new Date(),
+        endTime: input.endTime ? new Date(input.endTime) : null,
+        participantsJson: input.participants ?? [],
+        participantCount: input.participants?.length ?? 0,
         createdById: context.user.id,
       },
     });

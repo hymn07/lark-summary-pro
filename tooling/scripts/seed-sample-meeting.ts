@@ -142,9 +142,25 @@ async function main() {
   });
   console.log(`✅ 创建跳过纪要（用于展示跳过状态）: ${skippedRecord.id}`);
 
+  const processingRecord = await db.meetingRecord.create({
+    data: {
+      meetingId: "sample-feishu-001",
+      topic: "Q2 产品规划评审会",
+      startTime: new Date("2026-05-15T14:00:00+08:00"),
+      endTime: new Date("2026-05-15T15:30:00+08:00"),
+      participantCount: 8,
+      status: "processing",
+      userId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+  console.log(`✅ 创建处理中纪要（用于展示处理中状态）: ${processingRecord.id}`);
+
   console.log("\n🎉 示例数据创建完成！");
   console.log("   会议 ID: sample-feishu-001");
-  console.log("   纪要数量: 3 条 (completed + failed + skipped)");
+  console.log("   纪要数量: 4 条 (completed + failed + skipped + processing)");
+  console.log("   每种状态一条，用于展示筛选和不同状态的卡片效果");
 }
 
 main()

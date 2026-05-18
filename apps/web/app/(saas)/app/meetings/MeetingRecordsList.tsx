@@ -154,103 +154,62 @@ function MeetingCard({
           </div>
 
           {/* Participants */}
-          {displayParticipants.length > 0 && (
-            <div className="flex items-center gap-1 text-sm text-gray-500 mb-3">
-              <Users className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">
-                {displayParticipants.map((p) => p.userName ?? "未知").join("、")}
-                {remainingCount > 0 && ` 等 ${participants.length} 人`}
-              </span>
-            </div>
-          )}
-
-          {/* Links */}
-          <div className="flex gap-3 mb-3">
-            {noteDocToken && (
-              <a
-                href={`https://bytedance.feishu.cn/minutes/${noteDocToken}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Video className="h-3 w-3" />妙记回放
-              </a>
-            )}
-            {(meetingUrl || (isFeishu && meetingNo)) && (
-              <a
-                href={meetingUrl || `https://vc.feishu.cn/j/${meetingNo}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <ExternalLink className="h-3 w-3" />会议链接
-              </a>
+          <div className="flex items-center gap-1 text-sm text-gray-500 mb-2 h-5">
+            {displayParticipants.length > 0 ? (
+              <>
+                <Users className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">
+                  {displayParticipants.map((p) => p.userName ?? "未知").join("、")}
+                  {remainingCount > 0 && ` 等 ${participants.length} 人`}
+                </span>
+              </>
+            ) : (
+              <span className="text-gray-300 text-xs">暂无参会人信息</span>
             )}
           </div>
 
-          {/* Associated Records */}
-          {records.length > 0 && (
-            <div className="space-y-2 mb-3">
-              {records.map((r) => {
-                const status = (r.status as string) ?? "processing";
-                const config = statusConfig[status as keyof typeof statusConfig] ?? statusConfig.processing;
-                const Icon = config.Icon;
-                return (
-                  <div key={r.id as string} className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge className={config.color}>
-                        <Icon className="h-3 w-3 mr-1" />
-                        {config.label}
-                      </Badge>
-                      <span className="text-xs text-gray-400">
-                        {r.createdAt ? new Date(r.createdAt as string).toLocaleString("zh-CN") : ""}
-                      </span>
-                    </div>
-                    {(r.aiSummary as string) && (
-                      <p className="text-sm text-gray-600 line-clamp-2 mb-1">
-                        {r.aiSummary as string}
-                      </p>
-                    )}
-                    {(r.errorMessage as string) && (
-                      <p className="text-sm text-red-600 line-clamp-2 mb-1">
-                        {r.errorMessage as string}
-                      </p>
-                    )}
-                    {(r.skippedReason as string) && (
-                      <p className="text-sm text-gray-500 line-clamp-2 mb-1">
-                        跳过原因：{r.skippedReason as string}
-                      </p>
-                    )}
-                    {r.docUrl ? (
-                      <a
-                        href={r.docUrl as string}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <ExternalLink className="h-3 w-3" />打开纪要文档
-                      </a>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {/* Links */}
+          <div className="flex gap-3 mb-2 h-5">
+            {noteDocToken ? (
+              <a href={`https://bytedance.feishu.cn/minutes/${noteDocToken}`} target="_blank" rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                onClick={(e) => e.stopPropagation()}>
+                <Video className="h-3 w-3" />妙记回放
+              </a>
+            ) : null}
+            {(meetingUrl || (isFeishu && meetingNo)) ? (
+              <a href={meetingUrl || `https://vc.feishu.cn/j/${meetingNo}`} target="_blank" rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                onClick={(e) => e.stopPropagation()}>
+                <ExternalLink className="h-3 w-3" />会议链接
+              </a>
+            ) : null}
+            {!noteDocToken && !meetingUrl && !(isFeishu && meetingNo) && (
+              <span className="text-gray-300 text-xs">暂无链接</span>
+            )}
+          </div>
 
-          {/* Generate Button */}
-          <div onClick={(e) => e.stopPropagation()}>
-            <Button
-              size="sm"
-              variant={records.length > 0 ? "ghost" : "primary"}
-              disabled={generatingId === id}
-              onClick={() => onGenerate(id)}
-            >
-              <Sparkles className="h-4 w-4 mr-1" />
-              {generatingId === id ? "生成中..." : records.length > 0 ? "重新生成" : "生成纪要"}
-            </Button>
+          {/* Status indicator */}
+          <div className="flex items-center gap-2">
+            {records.length > 0 ? (
+              <Badge className="bg-green-100 text-green-700">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                已生成 {records.length} 份纪要
+              </Badge>
+            ) : (
+              <span className="text-xs text-gray-400">未生成纪要</span>
+            )}
+            <div onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={generatingId === id}
+                onClick={() => onGenerate(id)}
+              >
+                <Sparkles className="h-4 w-4 mr-1" />
+                {generatingId === id ? "生成中..." : records.length > 0 ? "重新生成" : "生成纪要"}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -269,7 +228,9 @@ function AddMeetingDialog({
   const [topic, setTopic] = useState("");
   const [transcriptText, setTranscriptText] = useState("");
   const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [meetingUrl, setMeetingUrl] = useState("");
+  const [participantsStr, setParticipantsStr] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleAdd = async () => {
@@ -277,16 +238,21 @@ function AddMeetingDialog({
     if (!transcriptText.trim()) { toast.error("请粘贴或上传逐字稿"); return; }
     setLoading(true);
     try {
+      const participants = participantsStr.trim()
+        ? participantsStr.split(/[,，、\s]+/).map((n) => ({ userId: n, userName: n.trim(), isHost: false, isExternal: false }))
+        : [];
       await orpcClient.meetings.createManual({
         topic: topic.trim(),
         transcriptText: transcriptText.trim(),
         startTime: startTime || undefined,
+        endTime: endTime || undefined,
         meetingUrl: meetingUrl || undefined,
+        participants: participants.length > 0 ? participants : undefined,
       });
       toast.success("会议已添加");
       queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuList.queryKey() });
       onOpenChange(false);
-      setTopic(""); setTranscriptText(""); setStartTime(""); setMeetingUrl("");
+      setTopic(""); setTranscriptText(""); setStartTime(""); setEndTime(""); setMeetingUrl(""); setParticipantsStr("");
     } catch (e) {
       toast.error(`添加失败: ${e instanceof Error ? e.message : "未知错误"}`);
     } finally {
@@ -331,18 +297,30 @@ function AddMeetingDialog({
               value={transcriptText}
               onChange={(e) => setTranscriptText(e.target.value)}
               placeholder="粘贴会议转文字内容..."
-              rows={8}
+              rows={6}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>会议时间（可选）</Label>
-              <Input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+              <Label>开始时间</Label>
+              <Input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="text-sm" />
             </div>
             <div>
-              <Label>会议链接（可选）</Label>
-              <Input value={meetingUrl} onChange={(e) => setMeetingUrl(e.target.value)} placeholder="https://..." />
+              <Label>结束时间</Label>
+              <Input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="text-sm" />
             </div>
+          </div>
+          <div>
+            <Label>参会人</Label>
+            <Input
+              value={participantsStr}
+              onChange={(e) => setParticipantsStr(e.target.value)}
+              placeholder="用逗号或空格分隔，如：张三, 李四"
+            />
+          </div>
+          <div>
+            <Label>会议链接</Label>
+            <Input value={meetingUrl} onChange={(e) => setMeetingUrl(e.target.value)} placeholder="https://..." />
           </div>
         </div>
         <DialogFooter>

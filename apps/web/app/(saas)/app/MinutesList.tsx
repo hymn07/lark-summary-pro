@@ -104,17 +104,17 @@ function MinutesCard({ record, onDetailClick }: { record: Record<string, unknown
             )}
 
             {(record.aiSummary as string) && (
-              <p className="text-sm text-gray-500 line-clamp-2 mb-1">
+              <p className="text-sm text-gray-500 truncate mb-1">
                 {record.aiSummary as string}
               </p>
             )}
             {(record.errorMessage as string) && (
-              <p className="text-sm text-red-600 line-clamp-2 mb-1">
+              <p className="text-sm text-red-600 truncate mb-1">
                 {record.errorMessage as string}
               </p>
             )}
             {(record.skippedReason as string) && (
-              <p className="text-sm text-gray-500 line-clamp-2 mb-1">
+              <p className="text-sm text-gray-500 truncate mb-1">
                 跳过原因：{record.skippedReason as string}
               </p>
             )}
