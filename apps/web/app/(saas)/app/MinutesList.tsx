@@ -16,7 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useState } from "react";
-import Link from "next/link";
+import { MinutesDetailDialog } from "./MinutesDetailDialog";
 
 const statusConfig = {
   completed: { label: "已完成", color: "bg-green-100 text-green-700", Icon: CheckCircle2 },
@@ -27,6 +27,7 @@ const statusConfig = {
 
 export function MinutesList() {
   const [status, setStatus] = useState<string | undefined>();
+  const [detailId, setDetailId] = useState<string | null>(null);
   const { data, isLoading, error, refetch } = useQuery(
     orpc.meetings.list.queryOptions({ input: { status: status as never, limit: 20 } }),
   );
@@ -60,21 +61,22 @@ export function MinutesList() {
 
       <div className="space-y-3">
         {records.map((r) => (
-          <MinutesCard key={(r as Record<string, unknown>).id as string} record={r as Record<string, unknown>} />
+          <MinutesCard key={(r as Record<string, unknown>).id as string} record={r as Record<string, unknown>} onDetailClick={(id) => setDetailId(id)} />
         ))}
       </div>
+      <MinutesDetailDialog id={detailId} open={!!detailId} onOpenChange={(open) => { if (!open) setDetailId(null); }} />
     </div>
   );
 }
 
-function MinutesCard({ record }: { record: Record<string, unknown> }) {
+function MinutesCard({ record, onDetailClick }: { record: Record<string, unknown>; onDetailClick?: (id: string) => void }) {
   const status = (record.status as string) ?? "processing";
   const config = statusConfig[status as keyof typeof statusConfig] ?? statusConfig.processing;
   const Icon = config.Icon;
   const topic = (record.topic as string) ?? "未命名会议";
 
   return (
-    <Link href={`/app/meetings/${record.id}`} className="block">
+    <div onClick={() => onDetailClick?.(record.id as string)} className="cursor-pointer">
       <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-4 flex items-start gap-4">
           <Icon
@@ -140,7 +142,7 @@ function MinutesCard({ record }: { record: Record<string, unknown> }) {
           </div>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 }
 

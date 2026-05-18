@@ -27,7 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useState } from "react";
-import Link from "next/link";
+import { MeetingDetailDialog } from "./MeetingDetailDialog";
 
 const statusConfig = {
   completed: { label: "已完成", color: "bg-green-100 text-green-700", Icon: CheckCircle2 },
@@ -41,6 +41,7 @@ export function MeetingRecordsList() {
   const { data, isLoading, refetch } = useQuery(orpc.meetings.feishuList.queryOptions());
   const [showAdd, setShowAdd] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const meetings = (data as unknown[] | undefined) ?? [];
 
@@ -83,6 +84,7 @@ export function MeetingRecordsList() {
             key={(m as Record<string, unknown>).id as string}
             meeting={m as Record<string, unknown>}
             generatingId={generatingId}
+            onDetailClick={(id) => setDetailId(id)}
             onGenerate={(id) => {
               setGeneratingId(id);
               generateMutation.mutate(id, { onSettled: () => setGeneratingId(null) });
@@ -92,6 +94,7 @@ export function MeetingRecordsList() {
       )}
 
       <AddMeetingDialog open={showAdd} onOpenChange={setShowAdd} />
+      <MeetingDetailDialog id={detailId} open={!!detailId} onOpenChange={(open) => { if (!open) setDetailId(null); }} />
     </div>
   );
 }
@@ -99,10 +102,12 @@ export function MeetingRecordsList() {
 function MeetingCard({
   meeting,
   generatingId,
+  onDetailClick,
   onGenerate,
 }: {
   meeting: Record<string, unknown>;
   generatingId: string | null;
+  onDetailClick?: (id: string) => void;
   onGenerate: (id: string) => void;
 }) {
   const id = meeting.id as string;
@@ -124,8 +129,8 @@ function MeetingCard({
   const remainingCount = participants.length - 4;
 
   return (
-    <Link href={`/app/meetings/${id}`} className="block">
-      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+    <div onClick={() => onDetailClick?.(id)} className="cursor-pointer">
+      <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-5">
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
@@ -249,7 +254,7 @@ function MeetingCard({
           </div>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 }
 

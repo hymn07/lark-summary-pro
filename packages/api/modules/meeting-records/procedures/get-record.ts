@@ -14,7 +14,7 @@ export const getRecord = protectedProcedure
   .handler(async ({ input, context }) => {
     const record = await db.meetingRecord.findUnique({
       where: { id: input.id },
-      include: { processingLogs: { orderBy: { createdAt: "asc" } } },
+      include: { processingLogs: { orderBy: { createdAt: "asc" } }, feishuMeeting: true },
     });
     if (!record) throw new ORPCError("NOT_FOUND");
     if (record.userId !== context.user.id) throw new ORPCError("FORBIDDEN");
