@@ -19,6 +19,8 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -45,6 +47,18 @@ export function MeetingDetailDialog({
       : { queryKey: ["skip"], queryFn: () => null, enabled: false },
   );
   const [generating, setGenerating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const deleteMeetingMutation = useMutation({
+    mutationFn: (opts: { id: string; deleteRecords: boolean }) =>
+      orpcClient.meetings.deleteFeishu(opts),
+    onSuccess: () => {
+      toast.success("已删除");
+      queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuList.queryKey() });
+      onOpenChange(false);
+    },
+    onError: () => toast.error("删除失败"),
+  });
 
   const generateMutation = useMutation({
     mutationFn: (meetingId: string) => orpcClient.meetings.generate({ feishuMeetingId: meetingId }),
@@ -202,18 +216,23 @@ export function MeetingDetailDialog({
                 )}
               </div>
 
-              {/* Generate button */}
-              <Button
-                variant="primary"
-                disabled={generating}
-                onClick={() => {
-                  setGenerating(true);
-                  generateMutation.mutate(id!, { onSettled: () => setGenerating(false) });
-                }}
-              >
-                <Sparkles className="h-4 w-4 mr-1" />
-                {generating ? "生成中..." : "生成纪要"}
-              </Button>
+              {/* Generate + Delete buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  disabled={generating}
+                  onClick={() => {
+                    setGenerating(true);
+                    generateMutation.mutate(id!, { onSettled: () => setGenerating(false) });
+                  }}
+                >
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  {generating ? "生成中..." : "生成纪要"}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)}>
+                  <Trash2 className="h-4 w-4 mr-1" />删除
+                </Button>
+              </div>
 
               <hr />
 
@@ -234,6 +253,29 @@ export function MeetingDetailDialog({
           </>
         )}
       </DialogContent>
+
+      {/* Delete confirmation */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />确认删除
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            该会议有 {((m?.meetingRecords as unknown[])?.length ?? 0)} 条关联纪要。是否同时删除？
+          </p>
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" size="sm" onClick={() => { setShowDeleteConfirm(false); deleteMeetingMutation.mutate({ id: id!, deleteRecords: false }); }}>
+              保留纪要
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => { setShowDeleteConfirm(false); deleteMeetingMutation.mutate({ id: id!, deleteRecords: true }); }}>
+              全部删除
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>取消</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

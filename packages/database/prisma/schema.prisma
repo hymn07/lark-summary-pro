@@ -259,6 +259,7 @@ model MeetingRecord {
   userId           String
   user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   processingLogs   ProcessingLog[]
+  isDeleted         Boolean             @default(false)
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
@@ -374,6 +375,7 @@ model FeishuMeeting {
   uploadedFileName String?
   createdById      String?
   createdBy        User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  isDeleted         Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   meetingRecords   MeetingRecord[]

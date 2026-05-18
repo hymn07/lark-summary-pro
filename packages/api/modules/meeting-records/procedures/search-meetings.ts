@@ -150,3 +150,52 @@ export const generateForMeeting = protectedProcedure
 
     return result;
   });
+
+// 删除会议记录（软删除）
+export const deleteFeishuMeeting = protectedProcedure
+  .route({
+    method: "DELETE",
+    path: "/meetings/feishu/:id",
+    tags: ["Meeting Records"],
+    summary: "软删除会议记录",
+  })
+  .input(z.object({ id: z.string(), deleteRecords: z.boolean().default(false) }))
+  .handler(async ({ input }) => {
+    const meeting = await db.feishuMeeting.findUnique({ where: { id: input.id } });
+    if (!meeting) throw new ORPCError("NOT_FOUND");
+
+    if (input.deleteRecords) {
+      await db.meetingRecord.updateMany({
+        where: { meetingId: meeting.meetingId },
+        data: { isDeleted: true },
+      });
+    }
+
+    await db.feishuMeeting.update({
+      where: { id: input.id },
+      data: { isDeleted: true },
+    });
+
+    return { success: true };
+  });
+
+// 删除会议纪要（软删除）
+export const deleteMeetingRecord = protectedProcedure
+  .route({
+    method: "DELETE",
+    path: "/meeting-records/:id",
+    tags: ["Meeting Records"],
+    summary: "软删除会议纪要",
+  })
+  .input(z.object({ id: z.string() }))
+  .handler(async ({ input }) => {
+    const record = await db.meetingRecord.findUnique({ where: { id: input.id } });
+    if (!record) throw new ORPCError("NOT_FOUND");
+
+    await db.meetingRecord.update({
+      where: { id: input.id },
+      data: { isDeleted: true },
+    });
+
+    return { success: true };
+  });
