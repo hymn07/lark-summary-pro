@@ -12,7 +12,6 @@ import { UserMenu } from "@saas/shared/components/UserMenu";
 import {
   FileTextIcon,
   SettingsIcon,
-  SparklesIcon,
   ShieldIcon,
   PanelLeftCloseIcon,
   VideoIcon,
@@ -54,12 +53,6 @@ export function NavBar() {
       href: "/app/settings",
       icon: SettingsIcon,
       isActive: pathname.startsWith("/app/settings") && !pathname.includes("admin"),
-    },
-    {
-      label: "Prompt 管理",
-      href: "/app/settings/prompts",
-      icon: SparklesIcon,
-      isActive: pathname.startsWith("/app/settings/prompts"),
     },
     {
       label: "管理后台",

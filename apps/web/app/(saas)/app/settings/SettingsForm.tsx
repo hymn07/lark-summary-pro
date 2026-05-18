@@ -11,9 +11,9 @@ import { Textarea } from "@repo/ui/components/textarea";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { toast } from "sonner";
-import { Save } from "lucide-react";
+import { Save, Settings2 } from "lucide-react";
 import { useState } from "react";
-import Link from "next/link";
+import { PromptStyleDialog } from "./PromptStyleDialog";
 
 export function SettingsForm() {
   const { data: settings, isLoading } = useQuery(
@@ -25,6 +25,7 @@ export function SettingsForm() {
   const [extraInstructions, setExtraInstructions] = useState("");
   const [saveFolderToken, setSaveFolderToken] = useState("");
   const [activeVersionId, setActiveVersionId] = useState<string>("");
+  const [showStyleDialog, setShowStyleDialog] = useState(false);
 
   // 加载已有设置
   useState(() => {
@@ -82,6 +83,31 @@ export function SettingsForm() {
         </CardContent>
       </Card>
 
+      {/* 纪要风格 — 在保存位置前面 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>纪要风格</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Select value={activeVersionId} onValueChange={setActiveVersionId}>
+            <SelectTrigger>
+              <SelectValue placeholder="选择纪要风格" />
+            </SelectTrigger>
+            <SelectContent>
+              {(prompts as unknown[] ?? []).map((p: Record<string, unknown>) => (
+                <SelectItem key={p.id as string} value={p.id as string}>
+                  {p.name as string}
+                  {p.styleDescription ? ` — ${p.styleDescription}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => setShowStyleDialog(true)}>
+            <Settings2 className="h-4 w-4 mr-1" />管理纪要风格
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* 保存位置 */}
       <Card>
         <CardHeader>
@@ -98,35 +124,12 @@ export function SettingsForm() {
         </CardContent>
       </Card>
 
-      {/* Prompt 版本选择 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>纪要风格</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Select value={activeVersionId} onValueChange={setActiveVersionId}>
-            <SelectTrigger>
-              <SelectValue placeholder="选择 Prompt 版本" />
-            </SelectTrigger>
-            <SelectContent>
-              {(prompts as unknown[] ?? []).map((p: Record<string, unknown>) => (
-                <SelectItem key={p.id as string} value={p.id as string}>
-                  {p.name as string}
-                  {p.styleDescription ? ` — ${p.styleDescription}` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Link href="/app/settings/prompts" className="text-sm text-blue-600 hover:underline mt-2 inline-block">
-            管理 Prompt 版本 →
-          </Link>
-        </CardContent>
-      </Card>
-
       <Button onClick={handleSave} disabled={updateMutation.isPending}>
         <Save className="h-4 w-4 mr-1" />
         {updateMutation.isPending ? "保存中..." : "保存设置"}
       </Button>
+
+      <PromptStyleDialog open={showStyleDialog} onOpenChange={setShowStyleDialog} />
     </div>
   );
 }
