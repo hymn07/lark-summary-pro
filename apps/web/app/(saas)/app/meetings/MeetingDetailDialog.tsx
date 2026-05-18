@@ -216,23 +216,18 @@ export function MeetingDetailDialog({
                 )}
               </div>
 
-              {/* Generate + Delete buttons */}
-              <div className="flex gap-2">
-                <Button
-                  variant="primary"
-                  disabled={generating}
-                  onClick={() => {
-                    setGenerating(true);
-                    generateMutation.mutate(id!, { onSettled: () => setGenerating(false) });
-                  }}
-                >
-                  <Sparkles className="h-4 w-4 mr-1" />
-                  {generating ? "生成中..." : "生成纪要"}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)}>
-                  <Trash2 className="h-4 w-4 mr-1" />删除
-                </Button>
-              </div>
+              {/* Generate button */}
+              <Button
+                variant="primary"
+                disabled={generating}
+                onClick={() => {
+                  setGenerating(true);
+                  generateMutation.mutate(id!, { onSettled: () => setGenerating(false) });
+                }}
+              >
+                <Sparkles className="h-4 w-4 mr-1" />
+                {generating ? "生成中..." : "生成纪要"}
+              </Button>
 
               <hr />
 
@@ -248,6 +243,13 @@ export function MeetingDetailDialog({
                 ) : (
                   <p className="text-gray-400 text-sm text-center py-8">暂无逐字稿</p>
                 )}
+              </div>
+
+              {/* Delete — at the bottom */}
+              <div className="pt-3 border-t">
+                <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)}>
+                  <Trash2 className="h-4 w-4 mr-1" />删除会议
+                </Button>
               </div>
             </div>
           </>

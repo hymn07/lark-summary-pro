@@ -32,22 +32,11 @@ export function MinutesList() {
     orpc.meetings.list.queryOptions({ input: { status: status as never, limit: 20 } }),
   );
 
-  if (isLoading) return <MinutesListSkeleton />;
-  if (error) return <ErrorCard message={String(error)} onRetry={() => refetch()} />;
-
   const records = (data as { data?: unknown[] })?.data ?? [];
-
-  if (records.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <p className="text-gray-500 text-lg">还没有会议纪要</p>
-        <p className="text-gray-400 mt-2">开完会后，纪要将自动出现在这里</p>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-3xl">
+      {/* Filter tabs — always visible */}
       <div className="flex gap-2 mb-6">
         <FilterButton active={!status} onClick={() => setStatus(undefined)}>
           全部
@@ -59,11 +48,26 @@ export function MinutesList() {
         ))}
       </div>
 
-      <div className="space-y-3">
-        {records.map((r) => (
-          <MinutesCard key={(r as Record<string, unknown>).id as string} record={r as Record<string, unknown>} onDetailClick={(id) => setDetailId(id)} />
-        ))}
-      </div>
+      {/* Content area */}
+      {isLoading ? (
+        <MinutesListSkeleton />
+      ) : error ? (
+        <ErrorCard message={String(error)} onRetry={() => refetch()} />
+      ) : records.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-gray-500 text-lg">
+            {status ? `没有${statusConfig[status as keyof typeof statusConfig]?.label ?? status}的纪要` : "还没有会议纪要"}
+          </p>
+          {!status && <p className="text-gray-400 mt-2">开完会后，纪要将自动出现在这里</p>}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {records.map((r) => (
+            <MinutesCard key={(r as Record<string, unknown>).id as string} record={r as Record<string, unknown>} onDetailClick={(id) => setDetailId(id)} />
+          ))}
+        </div>
+      )}
+
       <MinutesDetailDialog id={detailId} open={!!detailId} onOpenChange={(open) => { if (!open) setDetailId(null); }} />
     </div>
   );
