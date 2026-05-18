@@ -17,7 +17,7 @@ export const listRecords = protectedProcedure
     }),
   )
   .handler(async ({ input, context }) => {
-    const where: Record<string, unknown> = { userId: context.user.id, isDeleted: false };
+    const where: Record<string, unknown> = { userId: context.user.id };
     if (input.status) where.status = input.status;
 
     const records = await db.meetingRecord.findMany({

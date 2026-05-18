@@ -78,7 +78,7 @@ export type PromptVersionScalarFieldEnum = z.infer<typeof PromptVersionScalarFie
 
 // File: MeetingRecordScalarFieldEnum.schema.ts
 
-export const MeetingRecordScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'status', 'promptVersionId', 'docUrl', 'docToken', 'skippedReason', 'aiSummary', 'errorMessage', 'userId', 'isDeleted', 'createdAt', 'updatedAt'])
+export const MeetingRecordScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'status', 'promptVersionId', 'docUrl', 'docToken', 'skippedReason', 'aiSummary', 'errorMessage', 'userId', 'createdAt', 'updatedAt'])
 
 export type MeetingRecordScalarFieldEnum = z.infer<typeof MeetingRecordScalarFieldEnumSchema>;
 
@@ -120,7 +120,7 @@ export type SampleLearningScalarFieldEnum = z.infer<typeof SampleLearningScalarF
 
 // File: FeishuMeetingScalarFieldEnum.schema.ts
 
-export const FeishuMeetingScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'meetingNo', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'participantsJson', 'transcriptText', 'transcriptFetched', 'docUrl', 'source', 'noteDocToken', 'meetingUrl', 'uploadedFileName', 'createdById', 'isDeleted', 'createdAt', 'updatedAt'])
+export const FeishuMeetingScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'meetingNo', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'participantsJson', 'transcriptText', 'transcriptFetched', 'docUrl', 'source', 'noteDocToken', 'meetingUrl', 'uploadedFileName', 'createdById', 'createdAt', 'updatedAt'])
 
 export type FeishuMeetingScalarFieldEnum = z.infer<typeof FeishuMeetingScalarFieldEnumSchema>;
 
@@ -393,7 +393,6 @@ export const MeetingRecordSchema = z.object({
   aiSummary: z.string().nullish(),
   errorMessage: z.string().nullish(),
   userId: z.string(),
-  isDeleted: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -507,7 +506,6 @@ export const FeishuMeetingSchema = z.object({
   meetingUrl: z.string().nullish(),
   uploadedFileName: z.string().nullish(),
   createdById: z.string().nullish(),
-  isDeleted: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
