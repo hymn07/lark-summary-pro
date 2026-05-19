@@ -65,6 +65,7 @@ dist/
 # Local-only email analysis dumps (contains private attachments)
 docs/email-analysis/
 
-# Hidden files (except .gitignore)
+# Hidden files (except .gitignore and .env.example)
 .*
 !.gitignore
+!.env.example
