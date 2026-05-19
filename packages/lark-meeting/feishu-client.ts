@@ -110,3 +110,38 @@ export async function addDocCollaborator(
     return false;
   }
 }
+
+// 转移文档所有权给用户（应用创建后用 tenant_access_token 转移）
+export async function transferDocOwner(
+  docToken: string,
+  openId: string,
+): Promise<boolean> {
+  const token = await getTenantAccessToken();
+  if (!token) return false;
+
+  try {
+    const res = await fetch(
+      `https://open.feishu.cn/open-apis/drive/v1/permissions/${docToken}/members/transfer_owner?type=docx&need_notification=false&remove_old_owner=false&old_owner_perm=full_access`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          member_type: "openid",
+          member_id: openId,
+        }),
+      },
+    );
+    const json = await res.json();
+    if (json.code !== 0) {
+      console.error("转移文档所有权失败:", json.msg);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("转移文档所有权异常:", e);
+    return false;
+  }
+}
