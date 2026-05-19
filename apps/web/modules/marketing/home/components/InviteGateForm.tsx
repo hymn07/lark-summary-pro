@@ -51,7 +51,7 @@ export function InviteGateForm({ tone = "default" }: InviteGateFormProps) {
 				throw new Error();
 			}
 			if (typeof sessionStorage !== "undefined") {
-				sessionStorage.setItem("flowmail_invite_code", code.trim());
+				sessionStorage.setItem("app_invite_code", code.trim());
 			}
 			router.push(
 				withQuery("/auth/signup", {

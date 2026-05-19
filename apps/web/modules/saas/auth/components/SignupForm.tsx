@@ -86,7 +86,7 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 		if (invitationId || typeof sessionStorage === "undefined") {
 			return;
 		}
-		const stored = sessionStorage.getItem("flowmail_invite_code");
+		const stored = sessionStorage.getItem("app_invite_code");
 		if (stored) {
 			form.setValue("inviteCode", stored);
 		}
@@ -138,7 +138,7 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 			}
 
 			if (typeof sessionStorage !== "undefined") {
-				sessionStorage.removeItem("flowmail_invite_code");
+				sessionStorage.removeItem("app_invite_code");
 			}
 
 			if (invitationOnlyMode) {

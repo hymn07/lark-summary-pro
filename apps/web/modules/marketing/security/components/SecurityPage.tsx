@@ -207,7 +207,7 @@ export function SecurityPage() {
 								{t("page.cta.description")}
 							</p>
 							<a
-								href={`mailto:security@${config.appUrl?.replace(/https?:\/\//, "") || "flowmail.app"}`}
+								href={`mailto:security@${config.appUrl?.replace(/https?:\/\//, "") || "example.com"}`}
 								className="mt-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-6 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
 							>
 								<MailIcon className="size-4" />
