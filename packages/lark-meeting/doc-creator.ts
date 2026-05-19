@@ -2,12 +2,16 @@ import { db } from "@repo/database";
 import type { PipelineContext, MeetingMinutes } from "./types";
 import { getTenantAccessToken, addDocCollaborator, transferDocOwner } from "./feishu-client";
 
-// 获取用户的 open_id
+// 获取用户的飞书 open_id（优先返回 ou_ 格式的 open_id）
 async function getUserOpenId(userId: string): Promise<string | null> {
-  const account = await db.account.findFirst({
+  const accounts = await db.account.findMany({
     where: { userId, providerId: "lark" },
+    orderBy: { updatedAt: "desc" },
   });
-  return account?.accountId ?? null;
+  for (const acc of accounts) {
+    if (acc.accountId?.startsWith("ou_")) return acc.accountId;
+  }
+  return accounts[0]?.accountId ?? null;
 }
 
 // 获取用户的飞书 access token（过期自动刷新）
