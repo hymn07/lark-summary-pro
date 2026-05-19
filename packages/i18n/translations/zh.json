@@ -276,7 +276,7 @@
 			"execCalendar": "事件：预算评审，3月31日 14:00",
 			"execSlack": "已发布到飞书 #approvals 频道",
 			"execSummary": "3 个动作已完成，耗时 1.8 秒",
-			"terminalCmd": "$ flowmail process --type report",
+			"terminalCmd": "$ lark-summary process --type report",
 			"terminalReading": "> 读取中：\"工程团队周报\"",
 			"terminalExtracting": "> 正在提取字段...",
 			"terminalStatus": "✓ 状态：正常推进",

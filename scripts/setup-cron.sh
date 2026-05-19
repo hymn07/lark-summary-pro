@@ -14,7 +14,7 @@ if [ -z "$CRON_SECRET" ]; then
   echo ""
 fi
 
-CRON_CMD="*/3 * * * * curl -s -H 'Authorization: Bearer $CRON_SECRET' '$APP_URL/api/cron/sync-emails' >> /var/log/flowmail-sync.log 2>&1"
+CRON_CMD="*/3 * * * * curl -s -H 'Authorization: Bearer $CRON_SECRET' '$APP_URL/api/cron/sync-emails' >> /var/log/app-sync.log 2>&1"
 
 echo "Cron job to add (runs every 3 minutes):"
 echo ""

@@ -56,7 +56,7 @@ case "$cmd" in
   fix-db-url)
     echo "=== 修正 DATABASE_URL（如果你填的是 localhost）==="
     echo "docker-compose 内部网络中，postgres 服务名就是主机名"
-    echo "正确格式: DATABASE_URL=\"postgresql://flowmail:PASSWORD@postgres:5432/flowmail\""
+    echo "正确格式: DATABASE_URL=\"postgresql://user:PASSWORD@postgres:5432/app_db\""
     echo ""
     echo "当前 DATABASE_URL:"
     grep "^DATABASE_URL=" "$ENV_FILE" | head -1

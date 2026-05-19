@@ -419,7 +419,7 @@
 			"execCalendar": "Event: Budget Review, Mar 31 2pm",
 			"execSlack": "Posted to #approvals on Slack",
 			"execSummary": "3 actions completed in 1.8s",
-			"terminalCmd": "$ flowmail process --type report",
+			"terminalCmd": "$ lark-summary process --type report",
 			"terminalReading": "> Reading: \"Weekly Engineering Update\"",
 			"terminalExtracting": "> Extracting fields...",
 			"terminalStatus": "✓ Status: On Track",

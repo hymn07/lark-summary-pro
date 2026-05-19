@@ -78,10 +78,10 @@ echo "✅ Firewall configured"
 if [ ! -f /opt/lark-summary/.env ]; then
     cat > /opt/lark-summary/.env << 'ENVEOF'
 # ── Database ──
-POSTGRES_USER=flowmail
+POSTGRES_USER=lark_summary
 POSTGRES_PASSWORD=CHANGE_ME_STRONG_PASSWORD
-POSTGRES_DB=flowmail
-DATABASE_URL=postgresql://flowmail:CHANGE_ME_STRONG_PASSWORD@postgres:5432/flowmail
+POSTGRES_DB=lark_summary
+DATABASE_URL=postgresql://user:CHANGE_ME_PASSWORD@postgres:5432/app_db
 
 # ── MinIO (S3-compatible storage) ──
 MINIO_ROOT_USER=minioadmin

@@ -10,7 +10,7 @@
 			"@i18n": ["./modules/i18n"],
 			"@i18n/*": ["./modules/i18n/*"],
 			"@shared/*": ["./modules/shared/*"],
-			"@app/*": ["./modules/flowmail/*"],
+			"@app/*": ["./modules/*"],
 			"content-collections": ["./.content-collections/generated"]
 		}
 	},
