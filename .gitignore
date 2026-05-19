@@ -1,3 +1,6 @@
+# Dev-only test scripts (keep locally for reference)
+tooling/scripts/test-feishu-apis.ts
+
 # Environment
 .env
 .env.local
