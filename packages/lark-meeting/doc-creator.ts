@@ -1,6 +1,6 @@
 import { db } from "@repo/database";
 import type { PipelineContext, MeetingMinutes } from "./types";
-import { getTenantAccessToken, transferDocOwner } from "./feishu-client";
+import { getTenantAccessToken, addDocCollaborator, transferDocOwner } from "./feishu-client";
 
 // 获取用户的 open_id
 async function getUserOpenId(userId: string): Promise<string | null> {
@@ -107,10 +107,12 @@ export async function createFeishuDoc(
       // 内容写入失败不影响 URL 返回，文档已创建
     }
 
-    // Step 3: 转移文档所有权给用户（应用创建 → 用户所有，应用保留 full_access）
+    // Step 3: 添加用户为协作者 → 转移所有权
     if (userId) {
       const openId = await getUserOpenId(userId);
       if (openId) {
+        // 先添加协作者，再转移所有权（两步都要，否则转移可能失败）
+        await addDocCollaborator(documentId, openId);
         const transferred = await transferDocOwner(documentId, openId);
         if (transferred) {
           console.log(`文档所有权已转移: ${documentId} → ${openId}`);
