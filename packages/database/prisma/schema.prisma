@@ -307,6 +307,7 @@ model UserSettings {
   extraInstructions     String?
   activePromptVersionId String?
   activePromptVersion   PromptVersion? @relation(fields: [activePromptVersionId], references: [id], onDelete: SetNull)
+  meetingsSyncedAt      DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -367,7 +368,10 @@ model FeishuMeeting {
   participantCount Int?
   participantsJson Json?    @default("[]")
   transcriptText   String?  @db.Text
-  transcriptFetched Boolean  @default(false)
+  transcriptFetched   Boolean  @default(false)
+  transcriptRetryAt   DateTime?
+  transcriptRetryCount Int      @default(0)
+  userTranscriptText  String?  @db.Text
   docUrl           String?
   source           MeetingSource @default(feishu)
   noteDocToken     String?

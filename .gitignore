@@ -1,5 +1,6 @@
 # Dev-only test scripts (keep locally for reference)
 tooling/scripts/test-feishu-apis.ts
+tooling/scripts/test-minutes-transcript.ts
 
 # Environment
 .env

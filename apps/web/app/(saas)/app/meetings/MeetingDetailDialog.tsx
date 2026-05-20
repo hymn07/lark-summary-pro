@@ -21,6 +21,10 @@ import {
   Sparkles,
   Trash2,
   AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  Upload,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -48,6 +52,9 @@ export function MeetingDetailDialog({
   );
   const [generating, setGenerating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadText, setUploadText] = useState("");
 
   const deleteMeetingMutation = useMutation({
     mutationFn: (opts: { id: string; deleteRecords: boolean }) =>
@@ -67,6 +74,38 @@ export function MeetingDetailDialog({
       queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuDetail.queryKey({ input: { id: id! } }) });
     },
     onError: (e) => toast.error(`生成失败: ${e instanceof Error ? e.message : "未知错误"}`),
+  });
+
+  const [fetchingTranscript, setFetchingTranscript] = useState(false);
+  const handleFetchTranscript = async () => {
+    if (!id) return;
+    setFetchingTranscript(true);
+    try {
+      const result = await orpcClient.meetings.fetchTranscript({ id }) as { transcriptFetched: boolean };
+      if (result.transcriptFetched) {
+        toast.success("逐字稿已获取，正在生成纪要");
+      } else {
+        toast.warning("逐字稿尚未就绪，稍后重试");
+      }
+      queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuDetail.queryKey({ input: { id } }) });
+      queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuList.queryKey() });
+    } catch {
+      toast.error("获取失败");
+    } finally {
+      setFetchingTranscript(false);
+    }
+  };
+
+  const uploadMutation = useMutation({
+    mutationFn: (text: string) => orpcClient.meetings.uploadTranscript({ id: id!, text }),
+    onSuccess: () => {
+      toast.success("逐字稿已保存，正在生成纪要");
+      setShowUpload(false);
+      setUploadText("");
+      queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuDetail.queryKey({ input: { id: id! } }) });
+      queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuList.queryKey() });
+    },
+    onError: () => toast.error("上传失败"),
   });
 
   const m = data as Record<string, unknown> | null;
@@ -231,19 +270,96 @@ export function MeetingDetailDialog({
 
               <hr />
 
-              {/* Transcript section — below minutes, fixed height scrollable */}
+              {/* Transcript section — collapsible */}
               <div>
-                <h3 className="font-semibold mb-3">逐字稿</h3>
-                {m.transcriptText ? (
-                  <div className="max-h-48 overflow-y-auto rounded-lg border bg-gray-50 p-4">
-                    <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
-                      {m.transcriptText as string}
-                    </pre>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 font-semibold w-full text-left"
+                  onClick={() => setTranscriptOpen(!transcriptOpen)}
+                >
+                  {transcriptOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  逐字稿
+                  {(m.transcriptText || m.userTranscriptText) ? (
+                    <span className="text-xs text-gray-400 font-normal">
+                      ({[(m.transcriptText ? "自动获取" : ""), (m.userTranscriptText ? "手动上传" : "")].filter(Boolean).join(" + ")})
+                    </span>
+                  ) : null}
+                </button>
+
+                {transcriptOpen && (
+                  <div className="mt-2 space-y-3">
+                    {/* Auto-fetched transcript */}
+                    {(m.transcriptText as string) ? (
+                      <div className="max-h-48 overflow-y-auto rounded-lg border bg-gray-50 p-4">
+                        <p className="text-xs text-gray-400 mb-1">自动获取</p>
+                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                          {m.transcriptText as string}
+                        </pre>
+                      </div>
+                    ) : null}
+
+                    {/* User-uploaded transcript */}
+                    {(m.userTranscriptText as string) ? (
+                      <div className="max-h-48 overflow-y-auto rounded-lg border bg-gray-50 p-4">
+                        <p className="text-xs text-gray-400 mb-1">手动上传</p>
+                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                          {m.userTranscriptText as string}
+                        </pre>
+                      </div>
+                    ) : null}
+
+                    {!(m.transcriptText || m.userTranscriptText) && (
+                      <p className="text-gray-400 text-sm">暂无逐字稿</p>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handleFetchTranscript} disabled={fetchingTranscript}>
+                        {fetchingTranscript ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileText className="h-3 w-3 mr-1" />}
+                        获取逐字稿
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setShowUpload(true)}>
+                        <Upload className="h-3 w-3 mr-1" />上传逐字稿
+                      </Button>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-gray-400 text-sm text-center py-8">暂无逐字稿</p>
                 )}
               </div>
+
+              {/* Upload transcript dialog */}
+              <Dialog open={showUpload} onOpenChange={setShowUpload}>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Upload className="h-5 w-5" />上传逐字稿
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-blue-600 hover:underline cursor-pointer flex items-center gap-1">
+                        <Upload className="h-3 w-3" />上传 .txt/.md 文件
+                        <input type="file" accept=".txt,.md" className="hidden" onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadText(await file.text());
+                        }} />
+                      </label>
+                    </div>
+                    <textarea
+                      className="w-full min-h-[200px] rounded-lg border p-3 text-sm font-sans"
+                      value={uploadText}
+                      onChange={(e) => setUploadText(e.target.value)}
+                      placeholder="粘贴或上传逐字稿..."
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" size="sm" onClick={() => setShowUpload(false)}>取消</Button>
+                    <Button size="sm" disabled={!uploadText.trim() || uploadMutation.isPending}
+                      onClick={() => uploadMutation.mutate(uploadText.trim())}>
+                      {uploadMutation.isPending ? "保存中..." : "保存"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               {/* Delete — at the bottom */}
               <div className="pt-3 border-t">

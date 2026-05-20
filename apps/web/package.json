@@ -15,6 +15,7 @@
 		"@repo/auth": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/i18n": "workspace:*",
+		"@repo/lark-meeting": "workspace:*",
 
 		"@repo/mail": "workspace:*",
 		"@repo/payments": "workspace:*",

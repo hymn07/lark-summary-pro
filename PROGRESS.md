@@ -20,7 +20,7 @@
 - doc-creator.ts：纯 tenant token 创建 + 用户协作者（不再用 user token 创建/transfer_owner）
 - model-factory.ts：DeepSeek flash/pro
 - sample-learner.ts：举一反三学习
-- event-listener.ts：飞书事件 WebSocket 长连接
+- event-listener.ts：飞书事件 WebSocket 长连接，通过 instrumentation.ts 在 Next.js 启动时自动拉起
 
 ### API 层
 - oRPC: settings/prompts/meetings/larkAdmin 4 模块，20+ procedure
@@ -44,6 +44,14 @@
 个性路径：不同模板或有额外指令 → 每人独立 LLM + 独立文档
 ```
 
+### 事件监听器启动 + 会议同步策略 — 2026-05-20
+- instrumentation.ts：Next.js 16 register() 钩子，服务器启动时自动启动飞书 WebSocket 事件监听
+- UserSettings 新增 meetingsSyncedAt 字段，记录最后同步时间
+- listFeishuMeetings 改为首次登录触发 syncUserMeetings（meetingsSyncedAt 为 null 时）
+- syncMeetings 过程（POST /meetings/sync）：用户可手动"刷新"触发全量同步
+- 前端"刷新"按钮改为调用 syncMeetings mutation
+- 三层覆盖结构预留：事件监听器（实时）+ 每日 cron（兜底）+ 手动刷新（应急）
+
 ### 文档创建 + 参会人 + 批量省成本 — 2026-05-19
 - doc-creator：砍掉三层降级，纯 tenant_access_token + addDocCollaborator
 - feishu-client：新增 batchGetUserNames（contact/v3/users/basic_batch）+ addDocCollaborator（drive/v1/permissions）
@@ -61,7 +69,6 @@
 
 ## 📋 待做
 
-- [ ] 事件监听器启动（`scripts/event-listener.ts`）
 - [ ] 真实飞书会议端到端测试
 - [ ] 文档 Block 写入 API 修复（目前 block_type 已修正，写入仍报 invalid param）
 - [ ] refresh_token 续期测试（code=20014）

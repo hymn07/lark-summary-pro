@@ -1,6 +1,6 @@
 import { db, decryptField } from "@repo/database";
 import type { FeishuMeetingEndedEvent, PipelineContext, ProcessResult } from "./types";
-import { fetchMeetingDetail } from "./meeting-fetcher";
+import { fetchMeetingDetail, tryFetchTranscript } from "./meeting-fetcher";
 import { routeParticipants } from "./participant-router";
 import { runPreRoute } from "./pre-router";
 import { assemblePrompt } from "./prompt-assembler";
@@ -116,11 +116,78 @@ export async function handleMeetingEnded(
   }
   log(`Step 1 成功: 参会${detail.participantCount}人`);
 
-  // 非本企业会议 → 跳过
-  if (event.meeting.meetingSource !== 1) {
-    log(`跳过: meetingSource=${event.meeting.meetingSource}`);
+  // Step 1.1: 缓存会议到 FeishuMeeting + 尝试拉逐字稿
+  let transcriptText: string | null = null;
+  const noteDocToken = detail.noteDocToken;
+
+  const existing = await db.feishuMeeting.findUnique({ where: { meetingId }, select: { noteDocToken: true, transcriptText: true } });
+  transcriptText = existing?.transcriptText ?? null;
+
+  await db.feishuMeeting.upsert({
+    where: { meetingId },
+    update: {
+      topic: detail.topic,
+      startTime: detail.startTime ? new Date(Number(detail.startTime) * 1000) : null,
+      endTime: detail.endTime ? new Date(Number(detail.endTime) * 1000) : null,
+      hostUserId: detail.hostUserId,
+      participantCount: detail.participantCount,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      participantsJson: detail.participants as any,
+      ...(noteDocToken && !existing?.noteDocToken ? { noteDocToken } : {}),
+    },
+    create: {
+      meetingId,
+      topic: detail.topic,
+      source: "feishu",
+      startTime: detail.startTime ? new Date(Number(detail.startTime) * 1000) : null,
+      endTime: detail.endTime ? new Date(Number(detail.endTime) * 1000) : null,
+      hostUserId: detail.hostUserId,
+      participantCount: detail.participantCount,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      participantsJson: detail.participants as any,
+      noteDocToken,
+    },
+  });
+
+  // 尝试拉逐字稿（可能还没好，此时设重试）
+  if (!transcriptText) {
+    // 找一个参会人 userId 用于取 user_access_token
+    const candidateIds = new Set<string>();
+    if (detail.hostUserId) candidateIds.add(detail.hostUserId);
+    for (const p of detail.participants) candidateIds.add(p.userId);
+    const accounts = candidateIds.size > 0 ? await db.account.findMany({
+      where: { providerId: "lark", accountId: { in: [...candidateIds] } },
+      select: { userId: true, accountId: true },
+      orderBy: { updatedAt: "desc" },
+    }) : [];
+    const account = accounts.find((a) => a.accountId?.startsWith("ou_")) ?? accounts[0];
+    const result = await tryFetchTranscript(meetingId, account?.userId ?? undefined);
+    transcriptText = result.transcriptText;
+
+    if (!transcriptText) {
+      // 如果没有逐字稿（也没用户手动上传的）→ 设 5 分钟后重试
+      const hasUserTranscript = await db.feishuMeeting.findUnique({ where: { meetingId }, select: { userTranscriptText: true } });
+      if (!hasUserTranscript?.userTranscriptText) {
+        await db.feishuMeeting.update({
+          where: { meetingId },
+          data: {
+            transcriptRetryAt: new Date(Date.now() + 5 * 60 * 1000),
+            transcriptRetryCount: { increment: 0 },
+          },
+        });
+        log("暂无逐字稿，5 分钟后重试");
+        return [];
+      }
+    }
+  }
+
+  // 没有逐字稿文本（自动和手动都没有）→ 不生成，等重试
+  const userTranscript = (await db.feishuMeeting.findUnique({ where: { meetingId }, select: { userTranscriptText: true } }))?.userTranscriptText;
+  if (!transcriptText && !userTranscript) {
     return [];
   }
+
+  // meeting_source: 1=本企业 2=外部 — 只要收到事件就处理（企业成员参与即有权限）
 
   // Step 1.5: 参会人路由
   log("Step 1.5: 参会人路由...");

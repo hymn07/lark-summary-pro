@@ -1,62 +1,51 @@
-import { getTenantAccessToken } from "./feishu-client";
+import * as Lark from "@larksuiteoapi/node-sdk";
+import { getConfig } from "./config-reader";
 import { handleMeetingEnded } from "./pipeline";
-import type { FeishuMeetingEndedEvent } from "./types";
 
-// 飞书事件长连接监听
-// 连接 WebSocket 接收事件，自动重连
+let wsClient: Lark.WSClient | null = null;
+
+// 启动飞书事件长连接监听（基于官方 SDK）
 export async function startEventListener(): Promise<void> {
-  const token = await getTenantAccessToken();
-  if (!token) {
-    console.error("无法获取飞书 tenant_access_token，事件监听未启动");
+  if (wsClient) {
+    console.log("飞书事件监听已在运行，跳过");
     return;
   }
 
-  const wsUrl = `wss://open.feishu.cn/open-apis/event/v1/ws?token=${token}`;
-  console.log("飞书事件监听启动中...");
-
-  let ws: WebSocket | null = null;
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function connect() {
-    ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-      console.log("飞书事件 WebSocket 已连接");
-    };
-
-    ws.onmessage = async (event) => {
-      try {
-        const raw = JSON.parse(event.data as string);
-        // 飞书事件格式: { schema, header: { event_type, ... }, event: { ... } }
-        const eventType = raw.header?.event_type;
-
-        if (eventType === "vc.meeting.all_meeting_ended_v1") {
-          const meetingEvent = raw as FeishuMeetingEndedEvent;
-          console.log(`收到会议结束事件: ${meetingEvent.meeting.id} - ${meetingEvent.meeting.topic}`);
-          handleMeetingEnded(meetingEvent).catch((err) =>
-            console.error("处理会议结束事件失败:", err),
-          );
-        }
-      } catch (err) {
-        console.error("解析事件失败:", err);
-      }
-    };
-
-    ws.onclose = (event) => {
-      console.log(`飞书事件 WebSocket 断开 (code: ${event.code})，5 秒后重连`);
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(connect, 5000);
-    };
-
-    ws.onerror = (err) => {
-      console.error("飞书事件 WebSocket 错误:", err);
-    };
+  const appId = await getConfig("feishu_app_id");
+  const appSecret = await getConfig("feishu_app_secret");
+  if (!appId || !appSecret) {
+    console.error("飞书应用凭证未配置，无法启动事件监听");
+    return;
   }
 
-  connect();
+  console.log("飞书事件监听启动中...");
+
+  wsClient = new Lark.WSClient({
+    appId,
+    appSecret,
+    loggerLevel: Lark.LoggerLevel.info,
+  });
+
+  wsClient.start({
+    eventDispatcher: new Lark.EventDispatcher({}).register({
+      "vc.meeting.all_meeting_ended_v1": async (event) => {
+        try {
+          console.log(
+            `收到会议结束事件: ${(event as { meeting?: { id?: string; topic?: string } }).meeting?.id} - ${(event as { meeting?: { topic?: string } }).meeting?.topic}`,
+          );
+          await handleMeetingEnded(event as Parameters<typeof handleMeetingEnded>[0]);
+        } catch (err) {
+          console.error("处理会议结束事件失败:", err);
+        }
+      },
+    }),
+  });
+
+  console.log("飞书事件监听已连接");
 }
 
 // 停止事件监听
 export function stopEventListener(): void {
-  // WebSocket 会自动清理；如需强制断开，可在此实现
+  // SDK 的 WSClient 目前没有提供显式的 stop 方法；连接在进程退出时自动断开
+  wsClient = null;
 }

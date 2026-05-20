@@ -17,13 +17,20 @@ async function getUserOpenId(userId: string): Promise<string | null> {
 // 获取用户的飞书 access token（过期自动刷新）
 // 用于 meeting-search 同步会议等场景，文档创建不再使用
 export async function getUserAccessToken(userId: string): Promise<string | null> {
-  const account = await db.account.findFirst({
+  const accounts = await db.account.findMany({
     where: { userId, providerId: "lark" },
+    orderBy: { updatedAt: "desc" },
   });
+  // 优先取 ou_ 格式（飞书 open_id）的记录，其次取最新
+  const account = accounts.find((a) => a.accountId?.startsWith("ou_")) ?? accounts[0];
   if (!account?.accessToken) return null;
 
-  if (account.accessTokenExpiresAt && new Date(account.accessTokenExpiresAt) <= new Date(Date.now() + 5 * 60 * 1000)) {
-    if (!account.refreshToken) return null;
+  // 如果 accessTokenExpiresAt 不存在，或已过期（提前 5 分钟）→ 刷新
+  const needsRefresh = !account.accessTokenExpiresAt ||
+    new Date(account.accessTokenExpiresAt) <= new Date(Date.now() + 5 * 60 * 1000);
+
+  if (needsRefresh) {
+    if (!account.refreshToken) return account.accessToken; // 没有 refresh token，先试旧的
     try {
       const refreshUrl = new URL("https://open.feishu.cn/open-apis/authen/v2/oauth/token");
       refreshUrl.searchParams.set("client_id", process.env.FEISHU_APP_ID ?? "");
@@ -35,7 +42,7 @@ export async function getUserAccessToken(userId: string): Promise<string | null>
         method: "POST",
         headers: { "Content-Type": "application/json; charset=utf-8" },
       });
-      if (!res.ok) return null;
+      if (!res.ok) return account.accessToken; // 刷新失败，试旧的
       const json = await res.json();
       const tokenData = json.data ?? json;
       if (tokenData.access_token) {
@@ -52,7 +59,7 @@ export async function getUserAccessToken(userId: string): Promise<string | null>
         return tokenData.access_token;
       }
     } catch {
-      return null;
+      // 刷新异常，返回现有 token 试一试
     }
   }
 

@@ -26,6 +26,7 @@ function mockMeetingDetail(topic: string): MeetingDetail {
       { userId: "mock-user-003", userName: "李四", isHost: false, isExternal: false },
     ],
     transcriptDocToken: null,
+    noteDocToken: null,
   };
 }
 

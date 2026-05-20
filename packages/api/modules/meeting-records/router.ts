@@ -1,7 +1,7 @@
 import { listRecords } from "./procedures/list-records";
 import { getRecord } from "./procedures/get-record";
 import { retryRecord } from "./procedures/retry-record";
-import { listFeishuMeetings, getFeishuMeetingDetail, createManualMeeting, generateForMeeting, deleteFeishuMeeting, deleteMeetingRecord } from "./procedures/search-meetings";
+import { listFeishuMeetings, getFeishuMeetingDetail, createManualMeeting, generateForMeeting, deleteFeishuMeeting, deleteMeetingRecord, syncMeetings, fetchTranscript, uploadTranscript } from "./procedures/search-meetings";
 
 export const meetingRecordsRouter = {
   list: listRecords,
@@ -13,4 +13,7 @@ export const meetingRecordsRouter = {
   generate: generateForMeeting,
   deleteFeishu: deleteFeishuMeeting,
   deleteRecord: deleteMeetingRecord,
+  sync: syncMeetings,
+  fetchTranscript,
+  uploadTranscript,
 };

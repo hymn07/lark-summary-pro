@@ -38,7 +38,7 @@ const statusConfig = {
 
 export function MeetingRecordsList() {
   const queryClient = useQueryClient();
-  const { data, isLoading, refetch } = useQuery(orpc.meetings.feishuList.queryOptions());
+  const { data, isLoading } = useQuery(orpc.meetings.feishuList.queryOptions());
   const [showAdd, setShowAdd] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -86,6 +86,17 @@ export function MeetingRecordsList() {
     },
   });
 
+  const syncMutation = useMutation({
+    mutationFn: () => orpcClient.meetings.sync({}),
+    onSuccess: (data) => {
+      toast.success(`同步完成，共 ${(data as unknown[]).length} 条会议记录`);
+      queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuList.queryKey() });
+    },
+    onError: (e) => {
+      toast.error(`同步失败: ${e instanceof Error ? e.message : "未知错误"}`);
+    },
+  });
+
   if (isLoading) return <MeetingRecordsSkeleton />;
 
   return (
@@ -93,8 +104,17 @@ export function MeetingRecordsList() {
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-2xl">会议记录</h2>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-1" />刷新
+          <Button
+            variant="outline"
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending}
+          >
+            {syncMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-1" />
+            )}
+            刷新
           </Button>
           <Button onClick={() => setShowAdd(true)}>
             <Plus className="h-4 w-4 mr-1" />添加会议

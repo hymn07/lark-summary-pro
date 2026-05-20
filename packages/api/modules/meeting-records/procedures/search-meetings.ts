@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ORPCError } from "@orpc/server";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { searchMeetings, cacheMeeting, getCachedMeetings, getMeetingDetail, getTranscriptContent } from "@repo/lark-meeting/meeting-search";
+import { fetchMinutesTranscript } from "@repo/lark-meeting/meeting-fetcher";
 
 // 获取会议列表（飞书同步+缓存+手动上传）
 export const listFeishuMeetings = protectedProcedure
@@ -13,13 +14,23 @@ export const listFeishuMeetings = protectedProcedure
     summary: "获取会议列表（飞书 + 手动）",
   })
   .handler(async ({ context }) => {
-    // 后台同步：用用户 token 拉取最近 90 天会议+妙记
-    const { syncUserMeetings } = await import("@repo/lark-meeting/meeting-search");
     const account = await db.account.findFirst({
       where: { userId: context.user.id, providerId: "lark" },
     });
+
+    // 只在首次访问时后台同步（meetingsSyncedAt 为 null）
     if (account?.accessToken) {
-      syncUserMeetings(account.accessToken).catch((e) => console.error("[Sync] 后台同步失败:", e));
+      const settings = await db.userSettings.findUnique({ where: { userId: context.user.id } });
+      if (!settings?.meetingsSyncedAt) {
+        const { syncUserMeetings } = await import("@repo/lark-meeting/meeting-search");
+        syncUserMeetings(account.accessToken).then(async () => {
+          await db.userSettings.upsert({
+            where: { userId: context.user.id },
+            update: { meetingsSyncedAt: new Date() },
+            create: { userId: context.user.id, meetingsSyncedAt: new Date() },
+          });
+        }).catch((e) => console.error("[Sync] 后台同步失败:", e));
+      }
     }
     return getCachedMeetings(50);
   });
@@ -48,8 +59,15 @@ export const getFeishuMeetingDetail = protectedProcedure
         const detail = await getMeetingDetail(cached.meetingId);
         if (detail) {
           const updates: Record<string, unknown> = {};
-          if (!cached.transcriptFetched && detail.transcriptDocToken) {
-            const text = await getTranscriptContent(detail.transcriptDocToken);
+          if (!cached.transcriptFetched) {
+            // 优先用妙记 minutes API，降级 docx API
+            let text: string | null = null;
+            if (detail.noteDocToken) {
+              text = await fetchMinutesTranscript(detail.noteDocToken, context.user.id);
+            }
+            if (!text && detail.transcriptDocToken) {
+              text = await getTranscriptContent(detail.transcriptDocToken);
+            }
             if (text) {
               updates.transcriptText = text;
               updates.transcriptFetched = true;
@@ -59,7 +77,7 @@ export const getFeishuMeetingDetail = protectedProcedure
             updates.participantsJson = detail.participants;
             updates.participantCount = detail.participantCount;
           }
-          if (!cached.noteDocToken && detail.noteDocToken) {
+          if (detail.noteDocToken && !cached.noteDocToken) {
             updates.noteDocToken = detail.noteDocToken;
           }
           if (Object.keys(updates).length > 0) {
@@ -219,6 +237,86 @@ export const deleteMeetingRecord = protectedProcedure
       where: { id: input.id },
       data: { isDeleted: true },
     });
+
+    return { success: true };
+  });
+
+// 手动同步会议（用户点击"刷新"触发）
+export const syncMeetings = protectedProcedure
+  .route({
+    method: "POST",
+    path: "/meetings/sync",
+    tags: ["Meeting Records"],
+    summary: "手动同步最近 90 天会议",
+  })
+  .handler(async ({ context }) => {
+    const account = await db.account.findFirst({
+      where: { userId: context.user.id, providerId: "lark" },
+    });
+    if (!account?.accessToken) {
+      throw new ORPCError("BAD_REQUEST", { message: "未关联飞书账号" });
+    }
+
+    const { syncUserMeetings } = await import("@repo/lark-meeting/meeting-search");
+    await syncUserMeetings(account.accessToken);
+
+    await db.userSettings.upsert({
+      where: { userId: context.user.id },
+      update: { meetingsSyncedAt: new Date() },
+      create: { userId: context.user.id, meetingsSyncedAt: new Date() },
+    });
+
+    return getCachedMeetings(50);
+  });
+
+// 手动获取逐字稿（用户点击"获取逐字稿"触发）
+export const fetchTranscript = protectedProcedure
+  .route({
+    method: "POST",
+    path: "/meetings/:id/fetch-transcript",
+    tags: ["Meeting Records"],
+    summary: "手动拉取逐字稿并触发生成",
+  })
+  .input(z.object({ id: z.string() }))
+  .handler(async ({ input, context }) => {
+    const meeting = await db.feishuMeeting.findUnique({ where: { id: input.id } });
+    if (!meeting) throw new ORPCError("NOT_FOUND");
+
+    const { tryFetchTranscript } = await import("@repo/lark-meeting/meeting-fetcher");
+    const result = await tryFetchTranscript(meeting.meetingId, context.user.id);
+
+    if (result.transcriptText) {
+      const { generateForMeeting } = await import("@repo/lark-meeting");
+      generateForMeeting(meeting.meetingId).catch((e) =>
+        console.error("手动获取逐字稿后生成失败:", e),
+      );
+    }
+
+    return { transcriptFetched: !!result.transcriptText, noteDocToken: result.noteDocToken };
+  });
+
+// 上传逐字稿（用户手动上传或输入文本）
+export const uploadTranscript = protectedProcedure
+  .route({
+    method: "POST",
+    path: "/meetings/:id/upload-transcript",
+    tags: ["Meeting Records"],
+    summary: "手动上传逐字稿并触发生成",
+  })
+  .input(z.object({ id: z.string(), text: z.string().min(1) }))
+  .handler(async ({ input, context }) => {
+    const meeting = await db.feishuMeeting.findUnique({ where: { id: input.id } });
+    if (!meeting) throw new ORPCError("NOT_FOUND");
+
+    await db.feishuMeeting.update({
+      where: { id: input.id },
+      data: { userTranscriptText: input.text },
+    });
+
+    const { generateForMeeting } = await import("@repo/lark-meeting");
+    generateForMeeting(meeting.meetingId).catch((e) =>
+      console.error("上传逐字稿后生成失败:", e),
+    );
 
     return { success: true };
   });

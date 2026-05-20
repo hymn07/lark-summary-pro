@@ -96,7 +96,7 @@ export type UserModelAccessScalarFieldEnum = z.infer<typeof UserModelAccessScala
 
 // File: UserSettingsScalarFieldEnum.schema.ts
 
-export const UserSettingsScalarFieldEnumSchema = z.enum(['id', 'userId', 'autoEnabled', 'saveFolderToken', 'extraInstructions', 'activePromptVersionId', 'createdAt', 'updatedAt'])
+export const UserSettingsScalarFieldEnumSchema = z.enum(['id', 'userId', 'autoEnabled', 'saveFolderToken', 'extraInstructions', 'activePromptVersionId', 'meetingsSyncedAt', 'createdAt', 'updatedAt'])
 
 export type UserSettingsScalarFieldEnum = z.infer<typeof UserSettingsScalarFieldEnumSchema>;
 
@@ -120,7 +120,7 @@ export type SampleLearningScalarFieldEnum = z.infer<typeof SampleLearningScalarF
 
 // File: FeishuMeetingScalarFieldEnum.schema.ts
 
-export const FeishuMeetingScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'meetingNo', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'participantsJson', 'transcriptText', 'transcriptFetched', 'docUrl', 'source', 'noteDocToken', 'meetingUrl', 'uploadedFileName', 'createdById', 'isDeleted', 'createdAt', 'updatedAt'])
+export const FeishuMeetingScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'meetingNo', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'participantsJson', 'transcriptText', 'transcriptFetched', 'transcriptRetryAt', 'transcriptRetryCount', 'userTranscriptText', 'docUrl', 'source', 'noteDocToken', 'meetingUrl', 'uploadedFileName', 'createdById', 'isDeleted', 'createdAt', 'updatedAt'])
 
 export type FeishuMeetingScalarFieldEnum = z.infer<typeof FeishuMeetingScalarFieldEnumSchema>;
 
@@ -437,6 +437,7 @@ export const UserSettingsSchema = z.object({
   saveFolderToken: z.string().nullish(),
   extraInstructions: z.string().nullish(),
   activePromptVersionId: z.string().nullish(),
+  meetingsSyncedAt: z.date().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -501,6 +502,9 @@ export const FeishuMeetingSchema = z.object({
   participantsJson: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("[]").nullish(),
   transcriptText: z.string().nullish(),
   transcriptFetched: z.boolean(),
+  transcriptRetryAt: z.date().nullish(),
+  transcriptRetryCount: z.number().int(),
+  userTranscriptText: z.string().nullish(),
   docUrl: z.string().nullish(),
   source: MeetingSourceSchema.default("feishu"),
   noteDocToken: z.string().nullish(),

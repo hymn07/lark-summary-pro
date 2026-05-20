@@ -22,6 +22,7 @@ function buildDetailFromCache(cached: {
     participantCount: cached.participantCount ?? participants.length,
     participants,
     transcriptDocToken: null,
+    noteDocToken: null,
   };
 }
 
@@ -93,6 +94,7 @@ export async function fetchMeetingDetail(meetingId: string): Promise<MeetingDeta
       participantCount: Number(meeting.participant_count ?? 0),
       participants: rawParticipants,
       transcriptDocToken: meeting.related_artifacts?.verbatim_doc_token ?? null,
+      noteDocToken: meeting.related_artifacts?.note_doc_token ?? null,
     };
   } catch {
     // 异常回退到缓存
@@ -100,7 +102,7 @@ export async function fetchMeetingDetail(meetingId: string): Promise<MeetingDeta
   }
 }
 
-// 获取逐字稿文本内容
+// 获取逐字稿文本内容（从 docx 文档）
 export async function fetchTranscriptContent(docToken: string): Promise<string | null> {
   const token = await getTenantAccessToken();
   if (!token) return null;
@@ -118,4 +120,115 @@ export async function fetchTranscriptContent(docToken: string): Promise<string |
   } catch {
     return null;
   }
+}
+
+// 获取用户 access token（用于需要用户身份的 API）
+async function getUserToken(userId: string): Promise<string | null> {
+  const { getUserAccessToken } = await import("./doc-creator");
+  return getUserAccessToken(userId);
+}
+
+// 从妙记导出逐字稿（优先 user token，降级 tenant token）
+export async function fetchMinutesTranscript(
+  minuteToken: string,
+  userId?: string,
+): Promise<string | null> {
+  // 优先用 user token（妙记权限通常关联到用户身份）
+  let token: string | null = null;
+  if (userId) {
+    token = await getUserToken(userId);
+  }
+  // 降级 tenant token
+  if (!token) {
+    token = await getTenantAccessToken();
+  }
+  if (!token) return null;
+
+  try {
+    const url = `https://open.feishu.cn/open-apis/minutes/v1/minutes/${minuteToken}/transcript?need_speaker=true&need_timestamp=true`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+
+    if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  }
+}
+
+// 尝试拉取逐字稿并更新缓存（用于延迟重试和手动触发）
+// 返回 transcriptText 或 null
+export async function tryFetchTranscript(
+  meetingId: string,
+  userId?: string,
+): Promise<{
+  transcriptText: string | null;
+  noteDocToken: string | null;
+}> {
+  const detail = await fetchMeetingDetail(meetingId);
+  if (!detail) return { transcriptText: null, noteDocToken: null };
+
+  const updates: Record<string, unknown> = {};
+
+  // noteDocToken 可能从 related_artifacts 拿不到，需要调 recording API 提取
+  let minuteToken = detail.noteDocToken;
+  if (!minuteToken) {
+    const token = await getTenantAccessToken();
+    if (token) {
+      try {
+        const recRes = await fetch(
+          `https://open.feishu.cn/open-apis/vc/v1/meetings/${meetingId}/recording`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (recRes.ok) {
+          const rj = await recRes.json();
+          const recUrl: string | undefined = rj.data?.recording?.url;
+          if (recUrl) {
+            const tokenMatch = recUrl.match(/\/minutes\/([a-zA-Z0-9]+)/);
+            if (tokenMatch) {
+              minuteToken = tokenMatch[1];
+              updates.noteDocToken = minuteToken;
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  } else {
+    updates.noteDocToken = detail.noteDocToken;
+  }
+
+  // 优先用妙记 token 调 minutes transcript API
+  let transcriptText: string | null = null;
+
+  if (minuteToken) {
+    transcriptText = await fetchMinutesTranscript(minuteToken, userId);
+    if (transcriptText) {
+      updates.transcriptText = transcriptText;
+      updates.transcriptFetched = true;
+      updates.transcriptRetryAt = null;
+      updates.transcriptRetryCount = 0;
+    }
+  }
+
+  // 降级：如果没有妙记 token，尝试用 verbatim_doc_token 调 docx API
+  if (!transcriptText && detail.transcriptDocToken) {
+    transcriptText = await fetchTranscriptContent(detail.transcriptDocToken);
+    if (transcriptText) {
+      updates.transcriptText = transcriptText;
+      updates.transcriptFetched = true;
+      updates.transcriptRetryAt = null;
+      updates.transcriptRetryCount = 0;
+    }
+  }
+
+  // 更新参会人
+  if (detail.participants.length > 0) {
+    updates.participantsJson = detail.participants;
+    updates.participantCount = detail.participantCount;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await db.feishuMeeting.update({ where: { meetingId }, data: updates });
+  }
+
+  return { transcriptText: transcriptText ?? null, noteDocToken: detail.noteDocToken };
 }

@@ -1,19 +1,20 @@
 import { z } from "zod";
 
 // 飞书事件体（企业会议结束 v1）
+// SDK 返回的是 snake_case 格式
 export const FeishuMeetingEndedEventSchema = z.object({
   meeting: z.object({
     id: z.string(),
     topic: z.string().optional(),
-    meetingSource: z.number().optional(),
-    startTime: z.string().optional(),
-    endTime: z.string().optional(),
-    hostUser: z
+    meeting_source: z.number().optional(),
+    start_time: z.string().optional(),
+    end_time: z.string().optional(),
+    host_user: z
       .object({
         id: z.object({
-          openId: z.string().optional(),
-          userId: z.string().optional(),
-          unionId: z.string().optional(),
+          open_id: z.string().optional(),
+          user_id: z.string().optional(),
+          union_id: z.string().optional(),
         }),
       })
       .optional(),
@@ -32,6 +33,7 @@ export interface MeetingDetail {
   participantCount: number;
   participants: MeetingParticipant[];
   transcriptDocToken: string | null;
+  noteDocToken: string | null;
 }
 
 export interface MeetingParticipant {

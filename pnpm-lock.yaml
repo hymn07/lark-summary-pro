@@ -175,6 +175,9 @@ importers:
       '@repo/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@repo/lark-meeting':
+        specifier: workspace:*
+        version: link:../../packages/lark-meeting
       '@repo/mail':
         specifier: workspace:*
         version: link:../../packages/mail
