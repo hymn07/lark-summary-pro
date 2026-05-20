@@ -175,3 +175,193 @@
 .agent-fab-ring {
 	box-shadow: 0 4px 20px color-mix(in srgb, var(--foreground) 20%, transparent);
 }
+
+/* ── Calendar Grid System ── */
+
+.ultimate-popover {
+	background: rgba(255, 255, 255, 0.85);
+	backdrop-filter: blur(24px) saturate(180%);
+	-webkit-backdrop-filter: blur(24px) saturate(180%);
+	border: 1px solid rgba(255, 255, 255, 0.5);
+	box-shadow:
+		0 0 0 1px rgba(15, 23, 42, 0.01),
+		0 4px 12px rgba(15, 23, 42, 0.01),
+		0 32px 64px -12px rgba(15, 23, 42, 0.12);
+	opacity: 0;
+	pointer-events: none;
+	transform: scale(0.95) translateY(10px);
+	transition:
+		opacity 0.25s ease,
+		transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+		top 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+		left 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.ultimate-popover.active {
+	opacity: 1;
+	pointer-events: auto;
+	transform: scale(1) translateY(0);
+}
+
+.art-cell {
+	position: relative;
+	background: transparent;
+	transition: all 0.25s ease;
+}
+
+.art-cell::after {
+	content: "";
+	position: absolute;
+	inset: 4px;
+	border-radius: 16px;
+	background: transparent;
+	transition: all 0.2s ease;
+	z-index: 0;
+}
+
+.art-cell:hover::after {
+	background: rgba(255, 255, 255, 0.85);
+	box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+}
+
+.today-glow::after {
+	border: 1px solid rgba(79, 70, 229, 0.25);
+	background: rgb(255, 255, 255);
+	box-shadow: 0 8px 24px -6px rgba(79, 70, 229, 0.08);
+}
+
+.more-meetings-container {
+	max-height: 0;
+	opacity: 0;
+	overflow: hidden;
+	transition:
+		max-height 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+		opacity 0.2s ease;
+}
+
+.more-meetings-container.expanded {
+	max-height: 180px;
+	opacity: 1;
+	margin-top: 0.625rem;
+}
+
+.grid-animator {
+	transition:
+		transform 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+		opacity 0.35s ease;
+}
+
+.slide-left-out { transform: translateX(-20px); opacity: 0; }
+.slide-right-out { transform: translateX(20px); opacity: 0; }
+.slide-left-in { transform: translateX(20px); opacity: 0; }
+.slide-right-in { transform: translateX(-20px); opacity: 0; }
+
+.btn-today {
+	transform: translateY(15px) scale(0.9);
+	opacity: 0;
+	pointer-events: none;
+	transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-today.show {
+	transform: translateY(0) scale(1);
+	opacity: 1;
+	pointer-events: auto;
+}
+
+@keyframes ripple {
+	0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.2); }
+	50% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0.15); }
+	100% { box-shadow: 0 0 0 20px rgba(79, 70, 229, 0); }
+}
+
+.ping-active::after {
+	animation: ripple 0.8s cubic-bezier(0.25, 1, 0.5, 1) 2;
+}
+
+/* ── 2.html: 主面板、抽屉、双模表单 ── */
+
+.premium-card {
+	transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+	border: 1px solid transparent;
+}
+
+.premium-card:hover {
+	border-color: rgba(79, 70, 229, 0.12);
+	box-shadow: 0 20px 40px -4px rgba(15, 23, 42, 0.06);
+	transform: translateY(-2px);
+}
+
+.drawer-overlay {
+	opacity: 0;
+	pointer-events: none;
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	transition: all 0.35s ease;
+}
+
+.drawer-overlay.active {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.drawer-panel {
+	transform: translateX(105%);
+	transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-panel.active {
+	transform: translateX(0);
+}
+
+.modal-overlay-2 {
+	opacity: 0;
+	pointer-events: none;
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	transition: all 0.3s ease;
+}
+
+.modal-overlay-2.active {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.modal-container-2 {
+	transform: scale(0.95) translateY(20px);
+	transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-overlay-2.active .modal-container-2 {
+	transform: scale(1) translateY(0);
+}
+
+.rigid-shell-container {
+	height: 160px !important;
+	max-height: 160px !important;
+	min-height: 160px !important;
+	box-sizing: border-box !important;
+	overflow: hidden !important;
+}
+
+.accordion-load-more {
+	max-height: 0;
+	opacity: 0;
+	overflow: hidden;
+	transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
+}
+
+.accordion-load-more.expanded {
+	max-height: 500px;
+	opacity: 1;
+}
+
+.transcript-clamp-zone {
+	max-height: 105px;
+	overflow: hidden;
+	transition: max-height 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.transcript-clamp-zone.expanded {
+	max-height: 1200px;
+}

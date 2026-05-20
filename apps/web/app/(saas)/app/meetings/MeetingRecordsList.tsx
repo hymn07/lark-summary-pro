@@ -25,9 +25,12 @@ import {
   Users,
   Plus,
   Loader2,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { MeetingDetailDialog } from "./MeetingDetailDialog";
+import { CalendarView } from "./CalendarView";
+import { LayoutGrid, CalendarDays } from "lucide-react";
 
 const statusConfig = {
   completed: { label: "已完成", color: "bg-green-100 text-green-700", Icon: CheckCircle2 },
@@ -42,6 +45,7 @@ export function MeetingRecordsList() {
   const [showAdd, setShowAdd] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"card" | "calendar">("card");
 
   const meetings = (data as unknown[] | undefined) ?? [];
 
@@ -103,7 +107,28 @@ export function MeetingRecordsList() {
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-2xl">会议记录</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* View toggle */}
+          <div className="flex bg-gray-100 rounded-md p-0.5 mr-2">
+            <button
+              type="button"
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                viewMode === "card" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setViewMode("card")}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                viewMode === "calendar" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setViewMode("calendar")}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <Button
             variant="outline"
             onClick={() => syncMutation.mutate()}
@@ -122,7 +147,19 @@ export function MeetingRecordsList() {
         </div>
       </div>
 
-      {meetings.length === 0 ? (
+      {viewMode === "calendar" ? (
+        <CalendarView
+          meetings={meetings as Array<Record<string, unknown>>}
+          generatingId={generatingId}
+          onMeetingClick={(id) => setDetailId(id)}
+          onGenerate={(id) => {
+            setGeneratingId(id);
+            generateMutation.mutate(id, { onSettled: () => setGeneratingId(null) });
+          }}
+          onFetchTranscript={(id) => { /* handled via MeetingDetailDialog */ }}
+          onUploadTranscript={(id) => { /* handled via MeetingDetailDialog */ }}
+        />
+      ) : meetings.length === 0 ? (
         <div className="text-center py-16">
           <Video className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 text-lg">暂无会议记录</p>
@@ -165,111 +202,84 @@ function MeetingCard({
   const id = meeting.id as string;
   const isFeishu = meeting.source === "feishu";
   const topic = (meeting.topic as string) || "未命名会议";
-  const startTime = meeting.startTime
-    ? new Date(meeting.startTime as string)
-    : null;
-  const endTime = meeting.endTime
-    ? new Date(meeting.endTime as string)
-    : null;
-  const participants = (meeting.participantsJson as Array<{ userName: string; isHost: boolean }>) ?? [];
+  const startTime = meeting.startTime ? new Date(meeting.startTime as string) : null;
+  const endTime = meeting.endTime ? new Date(meeting.endTime as string) : null;
   const records = (meeting.meetingRecords as Array<Record<string, unknown>>) ?? [];
   const noteDocToken = meeting.noteDocToken as string | undefined;
   const meetingNo = meeting.meetingNo as string | undefined;
   const meetingUrl = meeting.meetingUrl as string | undefined;
-
-  const displayParticipants = participants.slice(0, 4);
-  const remainingCount = participants.length - 4;
+  const hasRecords = records.length > 0;
+  const processing = records.some((r) => r.status === "processing");
+  const allFailed = hasRecords && records.every((r) => r.status === "failed" || r.status === "skipped");
 
   return (
-    <div onClick={() => onDetailClick?.(id)} className="cursor-pointer">
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-5">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-lg truncate">{topic}</h3>
-                <Badge className={isFeishu ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}>
-                  {isFeishu ? "飞书会议" : "手动上传"}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-gray-500">
-                {startTime && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {startTime.toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    {endTime && ` - ${endTime.toLocaleString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+    <div
+      onClick={() => onDetailClick?.(id)}
+      className="premium-card bg-white p-6 rounded-[24px] shadow-[0_2px_16px_rgba(15,23,42,0.02)] cursor-pointer group flex flex-col"
+    >
+      {/* Top row: title + source badge + hover action */}
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center space-x-2.5">
+          <h2 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-[320px]">
+            {topic}
+          </h2>
+          <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${isFeishu ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"}`}>
+            {isFeishu ? "飞书会议" : "手动上传"}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="opacity-0 group-hover:opacity-100 text-[11px] text-slate-500 hover:text-indigo-600 transition-all font-bold flex items-center bg-slate-50 px-2.5 py-1 rounded-lg shrink-0"
+          onClick={(e) => { e.stopPropagation(); onGenerate(id); }}
+          disabled={generatingId === id}
+        >
+          <Sparkles className="h-3 w-3 mr-1" />
+          {generatingId === id ? "生成中..." : hasRecords ? "重新生成" : "生成纪要"}
+        </button>
+      </div>
 
-          {/* Participants */}
-          <div className="flex items-center gap-1 text-sm text-gray-500 mb-2 h-5">
-            {displayParticipants.length > 0 ? (
-              <>
-                <Users className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">
-                  {displayParticipants.map((p) => p.userName ?? "未知").join("、")}
-                  {remainingCount > 0 && ` 等 ${participants.length} 人`}
-                </span>
-              </>
-            ) : (
-              <span className="text-gray-300 text-xs">暂无参会人信息</span>
-            )}
-          </div>
+      {/* Middle row: time + host */}
+      <div className="flex items-center space-x-5 text-[11px] text-slate-400 font-medium mb-4">
+        {startTime && (
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3 text-slate-300" />
+            {startTime.toLocaleString("zh-CN", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+            {endTime && ` - ${endTime.toLocaleString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`}
+          </span>
+        )}
+        {meeting.hostUserId && <span className="flex items-center gap-1"><Users className="h-3 w-3 text-slate-300" />发起人: hym</span>}
+      </div>
 
-          {/* Links */}
-          <div className="flex gap-3 mb-2 h-5">
-            {noteDocToken ? (
-              <a href={`https://bytedance.feishu.cn/minutes/${noteDocToken}`} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                onClick={(e) => e.stopPropagation()}>
-                <Video className="h-3 w-3" />妙记回放
-              </a>
-            ) : null}
-            {(meetingUrl || (isFeishu && meetingNo)) ? (
-              <a href={meetingUrl || `https://vc.feishu.cn/j/${meetingNo}`} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                onClick={(e) => e.stopPropagation()}>
-                <ExternalLink className="h-3 w-3" />会议链接
-              </a>
-            ) : null}
-            {!noteDocToken && !meetingUrl && !(isFeishu && meetingNo) && (
-              <span className="text-gray-300 text-xs">暂无链接</span>
-            )}
-          </div>
-
-          {/* Status indicator */}
-          <div className="flex items-center gap-2">
-            {records.some((r) => r.status === "processing") ? (
-              <Badge className="bg-blue-100 text-blue-700">
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                处理中...
-              </Badge>
-            ) : records.length > 0 ? (
-              <Badge className="bg-green-100 text-green-700">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                已生成 {records.length} 份纪要
-              </Badge>
-            ) : (
-              <span className="text-xs text-gray-400">未生成纪要</span>
-            )}
-            <div onClick={(e) => e.stopPropagation()}>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={generatingId === id}
-                onClick={() => onGenerate(id)}
-              >
-                <Sparkles className="h-4 w-4 mr-1" />
-                {generatingId === id ? "生成中..." : records.length > 0 ? "重新生成" : "生成纪要"}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Bottom row: status + links */}
+      <div className="flex items-center gap-2.5">
+        {processing ? (
+          <span className="text-blue-600 bg-blue-50 border border-blue-100/50 px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center">
+            <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> 处理中...
+          </span>
+        ) : hasRecords && !allFailed ? (
+          <span className="text-emerald-600 bg-emerald-50 border border-emerald-100/50 px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center">
+            <CheckCircle2 className="h-3 w-3 mr-1.5" /> 已生成 {records.length} 份纪要
+          </span>
+        ) : allFailed ? (
+          <span className="text-red-500 bg-red-50 border border-red-100/50 px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center">
+            <AlertCircle className="h-3 w-3 mr-1.5" /> 生成失败
+          </span>
+        ) : (
+          <span className="text-slate-400 bg-slate-50 border border-slate-200/40 px-2.5 py-1 rounded-xl text-[11px] font-medium flex items-center">
+            <Video className="h-3 w-3 mr-1.5" /> 暂无会议纪要
+          </span>
+        )}
+        {noteDocToken && (
+          <a
+            href={`https://bytedance.feishu.cn/minutes/${noteDocToken}`}
+            target="_blank" rel="noreferrer"
+            className="text-indigo-600 bg-indigo-50 border border-indigo-100/50 px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center hover:bg-indigo-100 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Video className="h-3 w-3 mr-1.5" /> 妙记回放
+          </a>
+        )}
+      </div>
     </div>
   );
 }
@@ -289,6 +299,7 @@ function AddMeetingDialog({
   const [meetingUrl, setMeetingUrl] = useState("");
   const [participantsStr, setParticipantsStr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [inputMode, setInputMode] = useState<"file" | "text">("text");
 
   const handleAdd = async () => {
     if (!topic.trim()) { toast.error("请填写会议名称"); return; }
@@ -299,10 +310,8 @@ function AddMeetingDialog({
         ? participantsStr.split(/[,，、\s]+/).map((n) => ({ userId: n, userName: n.trim(), isHost: false, isExternal: false }))
         : [];
       await orpcClient.meetings.createManual({
-        topic: topic.trim(),
-        transcriptText: transcriptText.trim(),
-        startTime: startTime || undefined,
-        endTime: endTime || undefined,
+        topic: topic.trim(), transcriptText: transcriptText.trim(),
+        startTime: startTime || undefined, endTime: endTime || undefined,
         meetingUrl: meetingUrl || undefined,
         participants: participants.length > 0 ? participants : undefined,
       });
@@ -310,84 +319,96 @@ function AddMeetingDialog({
       queryClient.invalidateQueries({ queryKey: orpc.meetings.feishuList.queryKey() });
       onOpenChange(false);
       setTopic(""); setTranscriptText(""); setStartTime(""); setEndTime(""); setMeetingUrl(""); setParticipantsStr("");
-    } catch (e) {
-      toast.error(`添加失败: ${e instanceof Error ? e.message : "未知错误"}`);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { toast.error(`添加失败: ${e instanceof Error ? e.message : "未知错误"}`); }
+    finally { setLoading(false); }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      setTranscriptText(text);
-      if (!topic && file.name) setTopic(file.name.replace(/\.(txt|md)$/, ""));
-    } catch {
-      toast.error("文件读取失败");
-    }
-  };
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />添加会议记录
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
+    <div className="modal-overlay-2 fixed inset-0 bg-slate-900/30 z-50 flex items-center justify-center p-4 active" onClick={(e) => { if (e.target === e.currentTarget) onOpenChange(false); }}>
+      <div className="modal-container-2 bg-white border border-slate-100 w-full max-w-lg rounded-[32px] shadow-[0_32px_80px_-16px_rgba(15,23,42,0.14)] overflow-hidden flex flex-col">
+        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white">
           <div>
-            <Label>会议名称 *</Label>
-            <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="如：产品评审会" />
+            <h3 className="text-base font-black text-slate-900 tracking-tight">添加新会议记录</h3>
+            <p className="text-[10px] text-slate-400 font-medium">支持文件多格式选取与长文本粘贴双载体</p>
           </div>
-          <div>
-            <Label>逐字稿/转文字内容 *</Label>
-            <div className="flex items-center gap-2 mb-1">
-              <label className="text-xs text-blue-600 hover:underline cursor-pointer flex items-center gap-1">
-                <Upload className="h-3 w-3" />上传 .txt/.md 文件
-                <input type="file" accept=".txt,.md" className="hidden" onChange={handleFileUpload} />
-              </label>
+          <button onClick={() => onOpenChange(false)} className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 flex items-center justify-center transition"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">会议名称 *</label>
+            <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="如：产品评审会"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-semibold focus:outline-none shadow-sm transition-all" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">逐字稿 / 转文字内容 *</label>
+            <div className="bg-slate-100 p-1 rounded-xl flex space-x-1 mb-2">
+              <button type="button" onClick={() => setInputMode("file")}
+                className={`tab-btn flex-1 py-1.5 text-[11px] font-medium rounded-lg transition-all ${inputMode === "file" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600"}`}>
+                <Upload className="h-3 w-3 mr-1 inline" />上传文件 (.md/.txt/.docx)
+              </button>
+              <button type="button" onClick={() => setInputMode("text")}
+                className={`tab-btn flex-1 py-1.5 text-[11px] font-medium rounded-lg transition-all ${inputMode === "text" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600"}`}>
+                手动输入
+              </button>
             </div>
-            <Textarea
-              value={transcriptText}
-              onChange={(e) => setTranscriptText(e.target.value)}
-              placeholder="粘贴会议转文字内容..."
-              rows={6}
-            />
+            <div className="rigid-shell-container w-full relative">
+              {inputMode === "file" ? (
+                <label className="absolute inset-0 border-2 border-dashed border-slate-200 hover:border-indigo-500/50 bg-slate-50/20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-colors group">
+                  <Upload className="h-5 w-5 text-slate-300 group-hover:text-indigo-500 mb-1.5" />
+                  <p className="text-xs font-bold text-slate-700">拖拽文件到此处，或 <span className="text-indigo-600 underline">点击浏览文件</span></p>
+                  <p className="text-[9px] text-slate-400 mt-0.5 font-medium">支持格式: .md, .txt, .docx</p>
+                  <input type="file" accept=".txt,.md" className="hidden" onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    setTranscriptText(await file.text());
+                    if (!topic && file.name) setTopic(file.name.replace(/\.(txt|md)$/, ""));
+                    setInputMode("text");
+                  }} />
+                </label>
+              ) : (
+                <textarea value={transcriptText} onChange={(e) => setTranscriptText(e.target.value)}
+                  placeholder="请在此处直接粘贴您的会议转文字文本"
+                  className="absolute inset-0 w-full h-full px-3.5 py-3.5 bg-slate-50/30 border border-slate-200 focus:border-indigo-500 rounded-2xl text-xs font-semibold focus:outline-none transition-all resize-none shadow-sm" />
+              )}
+            </div>
           </div>
+
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>开始时间</Label>
-              <Input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="text-sm" />
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">开始时间</label>
+              <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-semibold focus:outline-none shadow-sm transition-all" />
             </div>
-            <div>
-              <Label>结束时间</Label>
-              <Input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="text-sm" />
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">结束时间</label>
+              <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-semibold focus:outline-none shadow-sm transition-all" />
             </div>
           </div>
-          <div>
-            <Label>参会人</Label>
-            <Input
-              value={participantsStr}
-              onChange={(e) => setParticipantsStr(e.target.value)}
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">参会人员 (可选)</label>
+            <input value={participantsStr} onChange={(e) => setParticipantsStr(e.target.value)}
               placeholder="用逗号或空格分隔，如：张三, 李四"
-            />
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-semibold focus:outline-none shadow-sm transition-all" />
           </div>
-          <div>
-            <Label>会议链接</Label>
-            <Input value={meetingUrl} onChange={(e) => setMeetingUrl(e.target.value)} placeholder="https://..." />
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">会议链接</label>
+            <input value={meetingUrl} onChange={(e) => setMeetingUrl(e.target.value)} placeholder="https://..."
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-semibold focus:outline-none shadow-sm transition-all" />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-          <Button onClick={handleAdd} disabled={loading}>
-            {loading ? "添加中..." : "添加会议"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+        <div className="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-white">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>取消</Button>
+          <Button size="sm" onClick={handleAdd} disabled={loading}>{loading ? "添加中..." : "确定创建"}</Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
