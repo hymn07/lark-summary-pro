@@ -11,6 +11,7 @@ export async function generateMinutes(
 ): Promise<MeetingMinutes | null> {
   try {
     const transcript = mockTranscript ?? await getTranscriptText(detail);
+    if (!transcript) return null; // 无逐字稿不生成（不编造）
 
     const systemPrompt = `${prompt}
 
@@ -24,9 +25,7 @@ export async function generateMinutes(
     const { text } = await generateText({
       model: await getTextModel(),
       system: systemPrompt,
-      prompt: transcript
-        ? `以下是会议逐字稿，请生成会议纪要（只输出JSON）：\n\n${transcript}`
-        : `请根据会议基本信息生成会议纪要（只输出JSON）`,
+      prompt: `以下是会议逐字稿，请生成会议纪要（只输出JSON）：\n\n${transcript}`,
     });
 
     // 提取 JSON（模型可能在 JSON 外面包了 ```json ... ```）
@@ -48,19 +47,25 @@ export async function generateMinutes(
 }
 
 async function getTranscriptText(detail: MeetingDetail): Promise<string | null> {
-  // 手动会议：从 FeishuMeeting 缓存读逐字稿
-  if (detail.id.startsWith("manual-")) {
-    const { db } = await import("@repo/database");
-    const cached = await db.feishuMeeting.findUnique({ where: { meetingId: detail.id } });
-    return cached?.transcriptText ?? null;
+  const { db } = await import("@repo/database");
+
+  // 先从 FeishuMeeting 缓存读取（自动获取和手动上传都有）
+  const cached = await db.feishuMeeting.findUnique({
+    where: { meetingId: detail.id },
+    select: { transcriptText: true, userTranscriptText: true },
+  });
+
+  // 优先用自动获取的，其次用手动上传的
+  if (cached?.transcriptText) return cached.transcriptText;
+  if (cached?.userTranscriptText) return cached.userTranscriptText;
+
+  // 缓存没有 → 尝试实时拉取（通过 docToken）
+  if (detail.transcriptDocToken) {
+    try {
+      const { fetchTranscriptContent } = await import("./meeting-fetcher");
+      return await fetchTranscriptContent(detail.transcriptDocToken);
+    } catch { /* fall through */ }
   }
 
-  // 飞书会议：通过 docToken 拉取逐字稿
-  if (!detail.transcriptDocToken) return null;
-  try {
-    const { fetchTranscriptContent } = await import("./meeting-fetcher");
-    return await fetchTranscriptContent(detail.transcriptDocToken);
-  } catch {
-    return null;
-  }
+  return null;
 }
