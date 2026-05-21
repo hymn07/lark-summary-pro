@@ -1,206 +1,368 @@
 "use client";
 
-import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@repo/ui/components/card";
-import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import { Skeleton } from "@repo/ui/components/skeleton";
-import { cn } from "@repo/ui";
+import { orpcClient } from "@shared/lib/orpc-client";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CheckCircle2,
-  AlertCircle,
-  SkipForward,
-  ExternalLink,
-  RotateCw,
-  Loader2,
+	AlertCircle,
+	CheckCircle2,
+	ExternalLink,
+	Loader2,
+	RotateCw,
+	SkipForward,
 } from "lucide-react";
-import { useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
+import { toast } from "sonner";
 import { MinutesDetailDialog } from "./MinutesDetailDialog";
 
 const statusConfig = {
-  completed: { label: "已完成", color: "bg-green-100 text-green-700", Icon: CheckCircle2 },
-  processing: { label: "处理中", color: "bg-blue-100 text-blue-700", Icon: Loader2 },
-  failed: { label: "失败", color: "bg-red-100 text-red-700", Icon: AlertCircle },
-  skipped: { label: "已跳过", color: "bg-gray-100 text-gray-600", Icon: SkipForward },
+	completed: {
+		label: "已完成",
+		color: "text-[#10B981]",
+		bg: "bg-[#E6F4EA]",
+		Icon: CheckCircle2,
+	},
+	processing: {
+		label: "处理中",
+		color: "text-[#F59E0B]",
+		bg: "bg-[#FFF7ED]",
+		Icon: Loader2,
+	},
+	failed: {
+		label: "失败",
+		color: "text-red-600",
+		bg: "bg-red-50",
+		Icon: AlertCircle,
+	},
+	skipped: {
+		label: "已跳过",
+		color: "text-gray-500",
+		bg: "bg-gray-100",
+		Icon: SkipForward,
+	},
 } as const;
 
+const FILTER_OPTIONS = [
+	{ key: "all", label: "全部" },
+	{ key: "completed", label: "已完成" },
+	{ key: "processing", label: "处理中" },
+	{ key: "failed", label: "失败" },
+] as const;
+
 export function MinutesList() {
-  const [status, setStatus] = useState<string | undefined>();
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const { data, isLoading, error, refetch } = useQuery(
-    orpc.meetings.list.queryOptions({ input: { status: status as never, limit: 20 } }),
-  );
+	const queryClient = useQueryClient();
+	const [status, setStatus] = useState<string | undefined>();
+	const [detailId, setDetailId] = useState<string | null>(null);
+	const [showSkeleton, setShowSkeleton] = useState(true);
+	const sliderRef = useRef<HTMLDivElement>(null);
+	const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  const records = (data as { data?: unknown[] })?.data ?? [];
+	const { data, isLoading, isFetching, error, refetch } = useQuery(
+		orpc.meetings.list.queryOptions({
+			input: { status: status as never, limit: 50 },
+		}),
+	);
 
-  return (
-    <div className="max-w-3xl">
-      {/* Filter tabs — always visible */}
-      <div className="flex gap-2 mb-6">
-        <FilterButton active={!status} onClick={() => setStatus(undefined)}>
-          全部
-        </FilterButton>
-        {Object.entries(statusConfig).map(([key, config]) => (
-          <FilterButton key={key} active={status === key} onClick={() => setStatus(key)}>
-            {config.label}
-          </FilterButton>
-        ))}
-      </div>
+	// Unfiltered query for tab counts
+	const { data: allData } = useQuery(
+		orpc.meetings.list.queryOptions({
+			input: { limit: 100 },
+		}),
+	);
 
-      {/* Content area */}
-      {isLoading ? (
-        <MinutesListSkeleton />
-      ) : error ? (
-        <ErrorCard message={String(error)} onRetry={() => refetch()} />
-      ) : records.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-gray-500 text-lg">
-            {status ? `没有${statusConfig[status as keyof typeof statusConfig]?.label ?? status}的纪要` : "还没有会议纪要"}
-          </p>
-          {!status && <p className="text-gray-400 mt-2">开完会后，纪要将自动出现在这里</p>}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {records.map((r) => (
-            <MinutesCard key={(r as Record<string, unknown>).id as string} record={r as Record<string, unknown>} onDetailClick={(id) => setDetailId(id)} />
-          ))}
-        </div>
-      )}
+	const records = (data as { data?: unknown[] })?.data ?? [];
+	const allRecords = (allData as { data?: unknown[] })?.data ?? [];
 
-      <MinutesDetailDialog id={detailId} open={!!detailId} onOpenChange={(open) => { if (!open) setDetailId(null); }} />
-    </div>
-  );
+	const counts = {
+		all: allRecords.length,
+		completed: allRecords.filter(
+			(r) => (r as Record<string, unknown>).status === "completed",
+		).length,
+		processing: allRecords.filter(
+			(r) => (r as Record<string, unknown>).status === "processing",
+		).length,
+		failed: allRecords.filter(
+			(r) => (r as Record<string, unknown>).status === "failed",
+		).length,
+	};
+
+	// 180ms skeleton delay — matching 3.html tab switch benchmark
+	useEffect(() => {
+		if (!isFetching && showSkeleton) {
+			const timer = setTimeout(() => setShowSkeleton(false), 180);
+			return () => clearTimeout(timer);
+		}
+	}, [isFetching, showSkeleton]);
+
+	const retryMutation = useMutation({
+		mutationFn: (recordId: string) =>
+			orpcClient.meetings.retry({ id: recordId }),
+		onSuccess: () => {
+			toast.success("已重新提交生成");
+			queryClient.invalidateQueries({
+				queryKey: orpc.meetings.list.queryKey(),
+			});
+		},
+		onError: (e) =>
+			toast.error(
+				`重试失败: ${e instanceof Error ? e.message : "未知错误"}`,
+			),
+	});
+
+	const handleTabChange = (key: string) => {
+		if (status !== (key === "all" ? undefined : key)) {
+			setShowSkeleton(true);
+			setStatus(key === "all" ? undefined : key);
+		}
+	};
+
+	const updateSlider = useCallback((key: string) => {
+		const tab = tabRefs.current.get(key);
+		const slider = sliderRef.current;
+		if (!tab || !slider) {
+			return;
+		}
+		slider.style.width = `${String(tab.offsetWidth)}px`;
+		slider.style.transform = `translateX(${String(tab.offsetLeft)}px)`;
+	}, []);
+
+	useLayoutEffect(() => {
+		const activeKey = status ?? "all";
+		updateSlider(activeKey);
+	}, [status, counts, updateSlider]);
+
+	const activeFilter = status ?? "all";
+
+	return (
+		<div className="max-w-4xl">
+			{/* ── 分段胶囊页签 ── */}
+			<div className="tab-container mb-6" role="tablist">
+				<div className="tab-slider" ref={sliderRef} />
+				{FILTER_OPTIONS.map(({ key, label }) => {
+					const cnt = counts[key as keyof typeof counts] ?? 0;
+					return (
+						<button
+							key={key}
+							ref={(el) => {
+								if (el) {
+									tabRefs.current.set(key, el);
+								}
+							}}
+							role="tab"
+							type="button"
+							aria-selected={activeFilter === key}
+							onClick={() => handleTabChange(key)}
+							className={`tab-item px-5 py-2 text-[13px] font-semibold rounded-[9px] flex items-center ${activeFilter === key ? "active" : ""}`}
+						>
+							{label}
+							{cnt > 0 && (
+								<span className="tab-badge ml-1.5 px-1.5 py-0.5 text-[10px] rounded-[20px] font-medium">
+									{cnt}
+								</span>
+							)}
+						</button>
+					);
+				})}
+			</div>
+
+			{/* ── 内容区域 ── */}
+			{isLoading || showSkeleton ? (
+				<div>
+					<div className="skeleton-card">
+						<div
+							className="skeleton-block"
+							style={{
+								width: "25%",
+								height: 18,
+								marginBottom: 12,
+							}}
+						/>
+						<div
+							className="skeleton-block"
+							style={{ width: "80%", height: 14 }}
+						/>
+					</div>
+					<div className="skeleton-card" style={{ opacity: 0.5 }}>
+						<div
+							className="skeleton-block"
+							style={{
+								width: "35%",
+								height: 18,
+								marginBottom: 12,
+							}}
+						/>
+						<div
+							className="skeleton-block"
+							style={{ width: "60%", height: 14 }}
+						/>
+					</div>
+				</div>
+			) : error ? (
+				<div className="text-center py-16">
+					<AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+					<p className="text-red-600 mb-4">{String(error)}</p>
+					<Button variant="outline" onClick={() => refetch()}>
+						<RotateCw className="h-4 w-4 mr-1" />
+						重试
+					</Button>
+				</div>
+			) : records.length === 0 ? (
+				<div className="text-center text-slate-400 py-16 text-sm font-medium">
+					{status
+						? `没有${statusConfig[status as keyof typeof statusConfig]?.label ?? status}的纪要`
+						: "还没有会议纪要"}
+				</div>
+			) : (
+				<div className="space-y-4">
+					{records.map((r, index) => (
+						<MinutesCard
+							key={(r as Record<string, unknown>).id as string}
+							record={r as Record<string, unknown>}
+							index={index}
+							onDetailClick={(id) => setDetailId(id)}
+							onRetry={(id) => retryMutation.mutate(id)}
+						/>
+					))}
+				</div>
+			)}
+
+			<MinutesDetailDialog
+				id={detailId}
+				open={!!detailId}
+				onOpenChange={(open) => {
+					if (!open) {
+						setDetailId(null);
+					}
+				}}
+			/>
+		</div>
+	);
 }
 
-function MinutesCard({ record, onDetailClick }: { record: Record<string, unknown>; onDetailClick?: (id: string) => void }) {
-  const status = (record.status as string) ?? "processing";
-  const config = statusConfig[status as keyof typeof statusConfig] ?? statusConfig.processing;
-  const Icon = config.Icon;
-  const topic = (record.topic as string) ?? "未命名会议";
-
-  return (
-    <div onClick={() => onDetailClick?.(record.id as string)} className="cursor-pointer">
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4 flex items-start gap-4">
-          <Icon
-            className={cn("h-5 w-5 mt-0.5 flex-shrink-0", {
-              "text-green-600": status === "completed",
-              "text-blue-600": status === "processing",
-              "text-red-600": status === "failed",
-              "text-gray-400": status === "skipped",
-            })}
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-medium truncate">{topic}</h3>
-              <Badge className={config.color}>
-                <Icon className="h-3 w-3 mr-1" />
-                {config.label}
-              </Badge>
-            </div>
-
-            {status === "processing" && (
-              <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                AI 正在生成中...
-              </div>
-            )}
-
-            {(record.aiSummary as string) && (
-              <p className="text-sm text-gray-500 truncate mb-1">
-                {record.aiSummary as string}
-              </p>
-            )}
-            {(record.errorMessage as string) && (
-              <p className="text-sm text-red-600 truncate mb-1">
-                {record.errorMessage as string}
-              </p>
-            )}
-            {(record.skippedReason as string) && (
-              <p className="text-sm text-gray-500 truncate mb-1">
-                跳过原因：{record.skippedReason as string}
-              </p>
-            )}
-
-            <p className="text-xs text-gray-400">
-              {record.createdAt ? new Date(record.createdAt as string).toLocaleString("zh-CN") : ""}
-            </p>
-          </div>
-
-          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-          <div className="flex gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {record.docUrl ? (
-              <a href={record.docUrl as string} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm">
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  打开文档
-                </Button>
-              </a>
-            ) : null}
-            {(status === "failed" || status === "skipped") ? (
-              <Button variant="ghost" size="sm">
-                <RotateCw className="h-4 w-4" />
-              </Button>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function FilterButton({
-  active,
-  onClick,
-  children,
+function MinutesCard({
+	record,
+	index,
+	onDetailClick,
+	onRetry,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+	record: Record<string, unknown>;
+	index: number;
+	onDetailClick?: (id: string) => void;
+	onRetry?: (id: string) => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "px-3 py-1.5 rounded-full text-sm transition-colors",
-        active ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
+	const st = (record.status as string) ?? "processing";
+	const cfg =
+		statusConfig[st as keyof typeof statusConfig] ??
+		statusConfig.processing;
+	const Icon = cfg.Icon;
+	const topic = (record.topic as string) ?? "未命名会议";
+	const desc = (record.aiSummary as string) ?? "";
+	const isProcessing = st === "processing";
+	const isCompleted = st === "completed";
+	const isFailed = st === "failed";
+	const isSkipped = st === "skipped";
+	const isClickable = isCompleted || isFailed || isSkipped;
 
-function MinutesListSkeleton() {
-  return (
-    <div className="space-y-3 max-w-3xl">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Card key={i}>
-          <CardContent className="p-4 flex gap-4">
-            <Skeleton className="h-5 w-5 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-5 w-48" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
+	const handleRetry = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		onRetry?.(record.id as string);
+	};
 
-function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <div className="text-center py-16">
-      <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
-      <p className="text-red-600 mb-4">{message}</p>
-      <Button variant="outline" onClick={onRetry}>
-        <RotateCw className="h-4 w-4 mr-1" />
-        重试
-      </Button>
-    </div>
-  );
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: card contains interactive child anchor
+		<div
+			role="button"
+			tabIndex={isClickable ? 0 : -1}
+			onClick={() => {
+				if (isClickable) {
+					onDetailClick?.(record.id as string);
+				}
+			}}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					if (isClickable) {
+						e.preventDefault();
+						onDetailClick?.(record.id as string);
+					}
+				}
+			}}
+			className={`card-enter p-6 rounded-[16px] flex items-start justify-between gap-6 ${
+				isClickable
+					? "cursor-pointer group"
+					: "cursor-default opacity-80"
+			}`}
+			style={{ animationDelay: `${String(index * 0.05)}s` }}
+		>
+			<div className="space-y-1.5 flex-1 min-w-0">
+				<div className="flex items-center space-x-3">
+					<h2
+						className={`text-base font-semibold text-[#1A1A1A] truncate ${isClickable ? "group-hover:text-indigo-600" : ""} transition-colors`}
+					>
+						{topic}
+					</h2>
+					<span className="text-[11px] text-[#999999] font-mono mt-0.5 shrink-0">
+						{record.createdAt
+							? new Date(
+									record.createdAt as string,
+								).toLocaleString("zh-CN")
+							: ""}
+					</span>
+				</div>
+				{desc ? (
+					<p className="text-[13px] text-[#666666] line-clamp-1-custom pr-4">
+						{desc}
+					</p>
+				) : (record.errorMessage as string) ? (
+					<p className="text-[13px] text-red-500 line-clamp-1-custom pr-4">
+						{record.errorMessage as string}
+					</p>
+				) : (record.skippedReason as string) ? (
+					<p className="text-[13px] text-[#666666] line-clamp-1-custom pr-4">
+						跳过原因：{record.skippedReason as string}
+					</p>
+				) : null}
+			</div>
+
+			<div className="flex items-center shrink-0 space-x-3 mt-0.5">
+				{isCompleted && record.docUrl ? (
+					<a
+						href={record.docUrl as string}
+						target="_blank"
+						rel="noreferrer"
+						onClick={(e) => e.stopPropagation()}
+						className="opacity-0 group-hover:opacity-100 text-[11px] text-indigo-600 hover:bg-indigo-50 transition-all font-bold flex items-center px-3 py-1.5 rounded-[10px]"
+					>
+						<ExternalLink className="h-3 w-3 mr-1.5" /> 打开文档
+					</a>
+				) : null}
+				{(isFailed || isSkipped) && (
+					<button
+						type="button"
+						onClick={handleRetry}
+						className="opacity-0 group-hover:opacity-100 text-[11px] text-amber-600 hover:bg-amber-50 transition-all font-bold flex items-center px-3 py-1.5 rounded-[10px]"
+					>
+						<RotateCw className="h-3 w-3 mr-1.5" /> 重新生成
+					</button>
+				)}
+
+				<span
+					className={`px-2.5 py-1.5 text-[10px] font-bold rounded-[10px] flex items-center shrink-0 ${cfg.bg} ${cfg.color}`}
+				>
+					{isProcessing ? (
+						<span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] mr-2 pulse-dot" />
+					) : (
+						<Icon className="h-3 w-3 mr-1.5" />
+					)}
+					{cfg.label}
+				</span>
+			</div>
+		</div>
+	);
 }

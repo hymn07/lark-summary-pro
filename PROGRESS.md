@@ -52,6 +52,16 @@
 - 前端"刷新"按钮改为调用 syncMeetings mutation
 - 三层覆盖结构预留：事件监听器（实时）+ 每日 cron（兜底）+ 手动刷新（应急）
 
+### 会议纪要详情页 + 列表页重构 — 2026-05-21
+- 基于 3.html 极简视觉规范重构 MinutesDetailDialog 和 MinutesList
+- 详情弹窗：自定义居中弹窗替换 shadcn Dialog，锁定原生双向绝对居中（flex items-center justify-center）
+- 摘要区：默认 130px（约 5 行），展开 360px 内滚动（overflow-y: auto），随时可收起
+- 源会议抽屉：真正复用 MeetingDetailDialog 组件，非空占位
+- 已移除处理日志展示
+- 列表页：分段胶囊页签（tab-container + tab-slider + 计数 badges）、卡片入场动画（slideUpIn）、180ms 骨架屏
+- 卡片 hover 显示"打开文档"按钮，处理中呼吸灯脉冲
+- CSS 变量 --transition-smooth（0.35s cubic-bezier(0.25, 1, 0.5, 1)）
+
 ### 文档创建 + 参会人 + 批量省成本 — 2026-05-19
 - doc-creator：砍掉三层降级，纯 tenant_access_token + addDocCollaborator
 - feishu-client：新增 batchGetUserNames（contact/v3/users/basic_batch）+ addDocCollaborator（drive/v1/permissions）

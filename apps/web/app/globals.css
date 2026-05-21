@@ -365,3 +365,178 @@
 .transcript-clamp-zone.expanded {
 	max-height: 1200px;
 }
+
+/* ── 3.html: 会议纪要详情弹窗 + 源会议抽屉 ── */
+
+:root {
+	--transition-smooth: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.minutes-modal-overlay {
+	opacity: 0;
+	pointer-events: none;
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	transition: var(--transition-smooth);
+}
+
+.minutes-modal-overlay.active {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.minutes-modal-container {
+	transform: scale(0.96) translateY(12px);
+	transition: var(--transition-smooth);
+}
+
+.minutes-modal-overlay.active .minutes-modal-container {
+	transform: scale(1) translateY(0);
+}
+
+.source-drawer-overlay {
+	opacity: 0;
+	pointer-events: none;
+	background-color: rgba(15, 23, 42, 0.2);
+	backdrop-filter: blur(4px);
+	-webkit-backdrop-filter: blur(4px);
+	transition: var(--transition-smooth);
+}
+
+.source-drawer-overlay.active {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.source-drawer-container {
+	transform: translateX(100%);
+	transition: var(--transition-smooth);
+}
+
+.source-drawer-overlay.active .source-drawer-container {
+	transform: translateX(0);
+}
+
+.summary-collapse-zone {
+	transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ── 3.html: 分段胶囊页签 ── */
+
+.tab-container {
+	background-color: #EEEFF1;
+	padding: 4px;
+	border-radius: 12px;
+	display: inline-flex;
+	position: relative;
+	user-select: none;
+}
+
+.tab-slider {
+	position: absolute;
+	top: 4px;
+	left: 0;
+	height: calc(100% - 8px);
+	background-color: #FFFFFF;
+	border-radius: 9px;
+	box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04), 0px 1px 2px rgba(0, 0, 0, 0.02);
+	z-index: 1;
+	transition: var(--transition-smooth);
+}
+
+.tab-item {
+	position: relative;
+	z-index: 2;
+	transition: var(--transition-smooth);
+}
+
+.tab-item.active {
+	color: #1A1A1A;
+}
+
+.tab-item:not(.active) {
+	color: #666666;
+}
+
+.tab-badge {
+	transition: var(--transition-smooth);
+}
+
+.tab-item.active .tab-badge {
+	background: rgba(0, 0, 0, 0.06);
+	color: #1A1A1A;
+}
+
+.tab-item:not(.active) .tab-badge {
+	background: transparent;
+	color: #999999;
+}
+
+/* ── 3.html: 卡片入场与 Hover ── */
+
+.card-enter {
+	background-color: #FFFFFF;
+	border: 1px solid rgba(15, 23, 42, 0.02);
+	transition: var(--transition-smooth);
+	opacity: 0;
+	transform: translateY(16px);
+	animation: slideUpIn 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.card-enter:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.04);
+	border-color: rgba(79, 70, 229, 0.06);
+}
+
+@keyframes slideUpIn {
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* ── 3.html: 呼吸灯脉冲 ── */
+
+.pulse-dot {
+	animation: pulse 1.6s infinite ease-in-out;
+}
+
+@keyframes pulse {
+	0% { transform: scale(0.8); opacity: 0.5; }
+	50% { transform: scale(1.3); opacity: 1; }
+	100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+/* ── 3.html: 骨架屏 ── */
+
+.skeleton-card {
+	background-color: #FFFFFF;
+	border-radius: 16px;
+	padding: 24px;
+	margin-bottom: 16px;
+	height: 104px;
+	overflow: hidden;
+	border: 1px solid rgba(15, 23, 42, 0.02);
+}
+
+.skeleton-block {
+	background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 37%, #F3F4F6 63%);
+	background-size: 400% 100%;
+	animation: shimmer 1.4s ease infinite;
+	border-radius: 6px;
+}
+
+@keyframes shimmer {
+	0% { background-position: 100% 0; }
+	100% { background-position: 0 0; }
+}
+
+/* ── 3.html: 单行截断 ── */
+
+.line-clamp-1-custom {
+	display: -webkit-box;
+	-webkit-line-clamp: 1;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
