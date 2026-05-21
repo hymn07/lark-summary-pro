@@ -339,61 +339,86 @@ export function MeetingDetailDialog({
 										{hasMoreRecords && (
 											<>
 												<div
-													className={`accordion-load-more space-y-3 ${isSummaryExpanded ? "expanded" : ""}`}
-												>
-													{hiddenRecords.map((r) => (
-														<div
-															key={r.id as string}
-															className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm"
-														>
-															<div className="flex justify-between items-center mb-2.5">
-																<span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-																	{(r.status as string) ===
-																	"processing"
-																		? "处理中"
-																		: "已完成"}
-																</span>
-																<span className="text-[10px] text-slate-400 font-mono">
-																	{r.createdAt
-																		? new Date(
-																				r.createdAt as string,
-																			).toLocaleTimeString(
-																				"zh-CN",
-																				{
-																					hour: "2-digit",
-																					minute: "2-digit",
-																					second: "2-digit",
-																				},
-																			)
-																		: ""}
-																</span>
-															</div>
-															{(r.aiSummary as string) && (
-																<p className="text-xs text-slate-600 font-medium line-clamp-1">
-																	{
-																		r.aiSummary as string
-																	}
-																</p>
-															)}
-															{r.docUrl && (
-																<div className="flex justify-end mt-2 text-[11px] font-bold">
-																	<a
-																		href={
-																			r.docUrl as string
-																		}
-																		target="_blank"
-																		rel="noreferrer"
-																		className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 font-semibold"
+													className={`accordion-load-more space-y-3 ${isSummaryExpanded ? "expanded" : ""}`}>
+													{hiddenRecords.map((r) => {
+														const hst = r.status as string;
+														const HIcon =
+															STATUS_ICONS[
+																hst as keyof typeof STATUS_ICONS
+															] ?? Loader2;
+														const hProcessing =
+															hst === "processing";
+														const hBad =
+															hst === "failed" ||
+															hst === "skipped";
+														return (
+															<div
+																key={
+																	r.id as string
+																}
+																className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm"
+															>
+																<div className="flex justify-between items-center mb-2.5">
+																	<span
+																		className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+																			hProcessing
+																				? "text-blue-600 bg-blue-50"
+																				: hBad
+																					? "text-red-500 bg-red-50"
+																					: "text-emerald-600 bg-emerald-50"
+																		}`}
 																	>
-																		<ExternalLink className="h-3 w-3" />{" "}
-																		<span>
-																			打开云文档
-																		</span>
-																	</a>
+																		<HIcon
+																			className={`h-3 w-3 mr-1 inline ${hProcessing ? "animate-spin" : ""}`}
+																		/>
+																		{hProcessing
+																			? "处理中"
+																			: hBad
+																				? (r.skippedReason
+																					? "已跳过"
+																					: "失败")
+																				: "已完成"}
+																	</span>
+																	<span className="text-[10px] text-slate-400 font-mono">
+																		{r.createdAt
+																			? new Date(
+																					r.createdAt as string,
+																				).toLocaleTimeString(
+																					"zh-CN",
+																					{
+																						hour: "2-digit",
+																						minute: "2-digit",
+																						second: "2-digit",
+																					},
+																				)
+																			: ""}
+																	</span>
 																</div>
-															)}
-														</div>
-													))}
+																{(r.aiSummary as string) && (
+																	<p className="text-xs text-slate-600 font-medium line-clamp-1">
+																		{r.aiSummary as string}
+																	</p>
+																)}
+																{r.docUrl && (
+																	<div className="flex justify-end mt-2 text-[11px] font-bold">
+																		<a
+																			href={
+																				r.docUrl as string
+																			}
+																			target="_blank"
+																			rel="noreferrer"
+																			className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 font-semibold"
+																		>
+																			<ExternalLink className="h-3 w-3" />{" "}
+																			<span>
+																				打开云文档
+																			</span>
+																		</a>
+																	</div>
+																)}
+															</div>
+														);
+													})}
 												</div>
 												<div className="text-center pt-1">
 													<button
