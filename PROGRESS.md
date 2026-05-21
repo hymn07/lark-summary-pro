@@ -52,7 +52,15 @@
 - 前端"刷新"按钮改为调用 syncMeetings mutation
 - 三层覆盖结构预留：事件监听器（实时）+ 每日 cron（兜底）+ 手动刷新（应急）
 
-### 会议纪要详情页 + 列表页重构 — 2026-05-21
+### 设置页 + 管理后台重构 — 2026-05-21
+- 统一设计哲学：大圆角（rounded-[16px]/[24px]）、淡投影、退火态色、缓动动画
+- SettingsForm 完全重写：premium-card 布局、自定义 Switch toggle、删除"保存位置"
+- PromptStyleDialog：三段式（列表→创建→详情），固定高度滚动，"创建新风格"移入标题栏
+- AdminDashboard：删除"流水线测试"，premium 成员模式卡片 + 导航卡片
+- MemberList：头像首字母、premium 列表项
+- ModelProviderList：Dialog 表单替代内联表单
+- AdminPromptManager：一致的弹窗设计语言
+- 日历：个会→个会议
 - 基于 3.html 极简视觉规范重构 MinutesDetailDialog 和 MinutesList
 - 详情弹窗：自定义居中弹窗替换 shadcn Dialog，锁定原生双向绝对居中（flex items-center justify-center）
 - 摘要区：默认 130px（约 5 行），展开 360px 内滚动（overflow-y: auto），随时可收起

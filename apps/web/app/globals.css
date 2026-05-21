@@ -540,3 +540,19 @@
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 }
+
+/* ── 页面切换入场动画 ── */
+@keyframes pageIn {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.page-enter {
+	animation: pageIn 0.35s cubic-bezier(0.25, 1, 0.5, 1) both;
+}

@@ -1,202 +1,162 @@
 "use client";
 
-import { orpc } from "@shared/lib/orpc-query-utils";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { orpcClient } from "@shared/lib/orpc-client";
-import { Button } from "@repo/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@repo/ui/components/dialog";
-import { Switch } from "@repo/ui/components/switch";
 import { Textarea } from "@repo/ui/components/textarea";
-import { Skeleton } from "@repo/ui/components/skeleton";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2, Settings2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { FolderOpen, Save, Settings2 } from "lucide-react";
-import { useState, useEffect } from "react";
 import { PromptStyleDialog } from "./PromptStyleDialog";
 
 export function SettingsForm() {
-  const { data: settings, isLoading } = useQuery(
-    orpc.settings.get.queryOptions(),
-  );
+	const _queryClient = useQueryClient();
+	const { data: settings, isLoading } = useQuery(
+		orpc.settings.get.queryOptions(),
+	);
 
-  const [autoEnabled, setAutoEnabled] = useState(true);
-  const [extraInstructions, setExtraInstructions] = useState("");
-  const [saveFolderToken, setSaveFolderToken] = useState("");
-  const [showStyleDialog, setShowStyleDialog] = useState(false);
+	const [autoEnabled, setAutoEnabled] = useState(true);
+	const [extraInstructions, setExtraInstructions] = useState("");
+	const [showStyleDialog, setShowStyleDialog] = useState(false);
 
-  // 加载已有设置
-  useState(() => {
-    if (settings) {
-      setAutoEnabled((settings as Record<string, unknown>).autoEnabled as boolean ?? true);
-      setExtraInstructions((settings as Record<string, unknown>).extraInstructions as string ?? "");
-      setSaveFolderToken((settings as Record<string, unknown>).saveFolderToken as string ?? "");
-    }
-  });
+	const updateMutation = useMutation(
+		orpc.settings.update.mutationOptions({
+			onSuccess: () => toast.success("设置已保存"),
+			onError: () => toast.error("保存失败"),
+		}),
+	);
 
-  const updateMutation = useMutation(orpc.settings.update.mutationOptions());
+	// Sync local state from server
+	const [initDone, setInitDone] = useState(false);
+	if (!initDone && settings) {
+		const s = settings as Record<string, unknown>;
+		setAutoEnabled((s.autoEnabled as boolean) ?? true);
+		setExtraInstructions((s.extraInstructions as string) ?? "");
+		setInitDone(true);
+	}
 
-  const handleSave = async () => {
-    try {
-      await updateMutation.mutateAsync({
-        autoEnabled,
-        extraInstructions: extraInstructions || null,
-        saveFolderToken: saveFolderToken || null,
-      });
-      toast.success("设置已保存");
-    } catch {
-      toast.error("保存失败，请重试");
-    }
-  };
+	const handleSave = () => {
+		updateMutation.mutate({
+			autoEnabled,
+			extraInstructions: extraInstructions || null,
+		});
+	};
 
-  if (isLoading) return <SettingsSkeleton />;
+	if (isLoading) {
+		return <SettingsSkeleton />;
+	}
 
-  return (
-    <div className="space-y-6 max-w-2xl">
-      {/* 自动纪要开关 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>自动会议纪要</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">会议结束后自动生成纪要</p>
-          <Switch checked={autoEnabled} onCheckedChange={setAutoEnabled} />
-        </CardContent>
-      </Card>
+	return (
+		<div className="max-w-4xl space-y-6">
+			{/* ── 自动会议纪要 ── */}
+			<div className="premium-card bg-white p-6 rounded-[24px] shadow-[0_2px_16px_rgba(15,23,42,0.02)]">
+				<div className="flex items-center justify-between">
+					<div className="space-y-1">
+						<h3 className="text-sm font-bold text-slate-900">
+							自动会议纪要
+						</h3>
+						<p className="text-xs text-slate-400 font-medium">
+							会议结束后自动生成纪要，开完即出
+						</p>
+					</div>
+					<button
+						type="button"
+						onClick={() => setAutoEnabled(!autoEnabled)}
+						className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+							autoEnabled ? "bg-indigo-600" : "bg-slate-200"
+						}`}
+					>
+						<span
+							className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${autoEnabled ? "translate-x-[22px]" : "translate-x-[3px]"}`}
+						/>
+					</button>
+				</div>
+			</div>
 
-      {/* 额外指令 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>额外指令</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={extraInstructions}
-            onChange={(e) => setExtraInstructions(e.target.value)}
-            placeholder='可以告诉 AI 哪些会议要跳过、哪些话题要重点关注。比如："排除关于年会的会议"、"涉及融资话题时重点关注估值和条款"'
-            rows={5}
-          />
-        </CardContent>
-      </Card>
+			{/* ── 额外指令 ── */}
+			<div className="premium-card bg-white p-6 rounded-[24px] shadow-[0_2px_16px_rgba(15,23,42,0.02)]">
+				<div className="space-y-4">
+					<div className="space-y-1">
+						<h3 className="text-sm font-bold text-slate-900">
+							额外指令
+						</h3>
+						<p className="text-xs text-slate-400 font-medium">
+							告诉 AI 哪些会议要跳过、哪些话题要重点关注
+						</p>
+					</div>
+					<Textarea
+						value={extraInstructions}
+						onChange={(e) => setExtraInstructions(e.target.value)}
+						placeholder='例如："排除关于年会的会议"、"涉及融资话题时重点关注估值和条款"'
+						rows={4}
+						className="resize-none bg-[#F8F9FA] border-slate-200/60 rounded-[14px] text-[13px] placeholder:text-slate-300"
+					/>
+				</div>
+			</div>
 
-      {/* 纪要风格 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>纪要风格</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => setShowStyleDialog(true)}>
-              <Settings2 className="h-4 w-4 mr-1" />管理纪要风格
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
+			{/* ── 纪要风格 ── */}
+			<div className="premium-card bg-white p-6 rounded-[24px] shadow-[0_2px_16px_rgba(15,23,42,0.02)]">
+				<div className="flex items-center justify-between">
+					<div className="space-y-1">
+						<h3 className="text-sm font-bold text-slate-900">
+							纪要风格
+						</h3>
+						<p className="text-xs text-slate-400 font-medium">
+							管理你的 AI 写作风格版本
+						</p>
+					</div>
+					<button
+						type="button"
+						onClick={() => setShowStyleDialog(true)}
+						className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 rounded-[10px] transition-colors"
+					>
+						<Settings2 className="h-3.5 w-3.5" />
+						管理纪要风格
+					</button>
+				</div>
+			</div>
 
-      {/* 保存位置 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>保存位置</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FolderPicker token={saveFolderToken} onSelect={setSaveFolderToken} />
-        </CardContent>
-      </Card>
+			{/* ── 保存 ── */}
+			<div className="flex justify-end">
+				<button
+					type="button"
+					onClick={handleSave}
+					disabled={updateMutation.isPending}
+					className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[12px] text-[13px] font-bold transition-colors shadow-sm flex items-center gap-2 disabled:opacity-60"
+				>
+					{updateMutation.isPending ? (
+						<Loader2 className="h-4 w-4 animate-spin" />
+					) : null}
+					{updateMutation.isPending ? "保存中..." : "保存设置"}
+				</button>
+			</div>
 
-      <Button onClick={handleSave} disabled={updateMutation.isPending}>
-        <Save className="h-4 w-4 mr-1" />
-        {updateMutation.isPending ? "保存中..." : "保存设置"}
-      </Button>
-
-      <PromptStyleDialog open={showStyleDialog} onOpenChange={setShowStyleDialog} />
-    </div>
-  );
-}
-
-function FolderPicker({ token, onSelect }: { token: string; onSelect: (token: string) => void }) {
-  const [show, setShow] = useState(false);
-  const [folders, setFolders] = useState<Array<{ token: string; name: string }>>([]);
-  const [loading, setLoading] = useState(false);
-
-  const loadFolders = async () => {
-    setLoading(true);
-    try {
-      const data = await orpcClient.settings.listFolders({}) as Array<{ token: string; name: string; type: string }>;
-      setFolders(data.filter((f) => f.type === "folder"));
-    } catch {
-      toast.error("获取文件夹列表失败，请确保已登录飞书");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { if (show) loadFolders(); }, [show]);
-
-  return (
-    <div>
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500 flex-1 truncate">
-          {token ? `已选择文件夹: ${token}` : "未选择（默认保存到根目录）"}
-        </span>
-        <Button variant="outline" size="sm" onClick={() => setShow(true)}>
-          <FolderOpen className="h-4 w-4 mr-1" />选择文件夹
-        </Button>
-        {token && (
-          <Button variant="ghost" size="sm" onClick={() => onSelect("")}>
-            清除
-          </Button>
-        )}
-      </div>
-
-      <Dialog open={show} onOpenChange={setShow}>
-        <DialogContent className="max-w-md max-h-[60vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>选择保存文件夹</DialogTitle>
-          </DialogHeader>
-          {loading ? (
-            <p className="text-sm text-gray-400 text-center py-8">加载中...</p>
-          ) : folders.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <p>没有找到文件夹</p>
-              <p className="text-xs mt-1">请先在飞书中创建文件夹</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <button
-                type="button"
-                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 ${!token ? "bg-blue-50 text-blue-700" : ""}`}
-                onClick={() => { onSelect(""); setShow(false); }}
-              >
-                📁 根目录（默认）
-              </button>
-              {folders.map((f) => (
-                <button
-                  key={f.token}
-                  type="button"
-                  className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 truncate ${token === f.token ? "bg-blue-50 text-blue-700" : ""}`}
-                  onClick={() => { onSelect(f.token); setShow(false); }}
-                >
-                  📁 {f.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+			<PromptStyleDialog
+				open={showStyleDialog}
+				onOpenChange={setShowStyleDialog}
+			/>
+		</div>
+	);
 }
 
 function SettingsSkeleton() {
-  return (
-    <div className="space-y-6 max-w-2xl">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <Card key={i}>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-10 w-full" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
+	return (
+		<div className="max-w-4xl space-y-6">
+			{Array.from({ length: 3 }).map((_, i) => (
+				<div
+					key={i}
+					className="skeleton-card"
+					style={{ height: 88, borderRadius: 24 }}
+				>
+					<div
+						className="skeleton-block"
+						style={{ width: "30%", height: 18, marginBottom: 12 }}
+					/>
+					<div
+						className="skeleton-block"
+						style={{ width: "60%", height: 14 }}
+					/>
+				</div>
+			))}
+		</div>
+	);
 }

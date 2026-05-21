@@ -3,10 +3,12 @@
 import { cn } from "@repo/ui";
 import { NavBar } from "@saas/shared/components/NavBar";
 import { type PropsWithChildren } from "react";
+import { usePathname } from "next/navigation";
 import { SidebarProvider, useSidebar } from "../lib/sidebar-context";
 
 function AppContent({ children }: PropsWithChildren) {
   const { isCollapsed } = useSidebar();
+  const pathname = usePathname();
 
   return (
     <div className="bg-background">
@@ -18,7 +20,7 @@ function AppContent({ children }: PropsWithChildren) {
         })}
       >
         <main className="py-6 bg-card px-4 md:p-8 min-h-full w-full border-t md:border-t-0">
-          <div className="container px-0 h-full">{children}</div>
+          <div key={pathname} className="container px-0 h-full page-enter">{children}</div>
         </main>
       </div>
     </div>

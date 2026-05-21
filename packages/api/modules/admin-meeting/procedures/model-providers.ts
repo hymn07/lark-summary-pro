@@ -10,9 +10,8 @@ export const listProviders = adminProcedure
     tags: ["Admin - Models"],
     summary: "模型提供商列表",
   })
-  .handler(async ({ context }) => {
+  .handler(async () => {
     return db.modelProvider.findMany({
-      where: { createdById: context.user.id },
       orderBy: { createdAt: "desc" },
     });
   });
