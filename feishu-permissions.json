@@ -1,0 +1,25 @@
+{
+  "scopes": {
+    "app": [
+      "vc:meeting:read",
+      "vc:meeting.recording:read",
+      "contact:user.id:read",
+      "drive:drive:read",
+      "docx:document:read",
+      "docx:document:write"
+    ],
+    "user": [
+      "auth:user.id:read",
+      "offline_access",
+      "minutes:minutes.search:read",
+      "minutes:minutes:readonly",
+      "minutes:minutes.transcript:export",
+      "drive:drive",
+      "docx:document",
+      "vc:meeting.search:read"
+    ]
+  },
+  "events": [
+    "vc.meeting.all_meeting_ended_v1"
+  ]
+}
