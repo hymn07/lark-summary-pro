@@ -9,6 +9,7 @@ export { createFeishuDoc } from "./doc-creator";
 export { learnFromSamples } from "./sample-learner";
 export { getTenantAccessToken, batchGetUserNames, addDocCollaborator, transferDocOwner } from "./feishu-client";
 export { getFastModel, getTextModel } from "./model-factory";
+export { transcribeFile } from "./asr-client";
 export { startEventListener, stopEventListener } from "./event-listener";
 export { startTranscriptRetrier, stopTranscriptRetrier, generateForMeeting } from "./transcript-retrier";
 export { runMockPipeline } from "./mock-pipeline";

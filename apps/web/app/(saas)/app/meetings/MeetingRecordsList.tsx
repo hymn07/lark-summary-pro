@@ -12,6 +12,7 @@ import {
 	ExternalLink,
 	LayoutGrid,
 	Loader2,
+	Mic,
 	Plus,
 	RefreshCw,
 	Sparkles,
@@ -436,7 +437,8 @@ function AddMeetingDialog({
 	const [meetingUrl, setMeetingUrl] = useState("");
 	const [participantsStr, setParticipantsStr] = useState("");
 	const [loading, setLoading] = useState(false);
-	const [inputMode, setInputMode] = useState<"file" | "text">("text");
+	const [inputMode, setInputMode] = useState<"file" | "text" | "audio">("text");
+	const [asrLoading, setAsrLoading] = useState(false);
 
 	const handleAdd = async () => {
 		if (!topic.trim()) {
@@ -549,6 +551,14 @@ function AddMeetingDialog({
 							</button>
 							<button
 								type="button"
+								onClick={() => setInputMode("audio")}
+								className={`flex-1 py-1.5 text-[11px] font-medium rounded-lg transition-all ${inputMode === "audio" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600"}`}
+							>
+								<Mic className="h-3 w-3 mr-1 inline" />
+								上传录音
+							</button>
+							<button
+								type="button"
 								onClick={() => setInputMode("text")}
 								className={`flex-1 py-1.5 text-[11px] font-medium rounded-lg transition-all ${inputMode === "text" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600"}`}
 							>
@@ -589,6 +599,73 @@ function AddMeetingDialog({
 												);
 											}
 											setInputMode("text");
+										}}
+									/>
+								</label>
+							) : inputMode === "audio" ? (
+								<label className="absolute inset-0 border-2 border-dashed border-indigo-200 hover:border-indigo-500/50 bg-indigo-50/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-colors group">
+									{asrLoading ? (
+										<>
+											<Loader2 className="h-6 w-6 text-indigo-500 animate-spin mb-2" />
+											<p className="text-xs font-bold text-indigo-600">
+												正在转写中...
+											</p>
+										</>
+									) : (
+										<>
+											<Mic className="h-5 w-5 text-indigo-300 group-hover:text-indigo-500 mb-1.5" />
+											<p className="text-xs font-bold text-slate-700">
+												点击选择录音文件
+											</p>
+											<p className="text-[9px] text-slate-400 mt-0.5 font-medium">
+												支持格式: .mp3, .wav, .m4a, .flac, .ogg
+											</p>
+										</>
+									)}
+									<input
+										type="file"
+										accept=".mp3,.wav,.m4a,.flac,.ogg,.webm,.aac,.mp4"
+										className="hidden"
+										disabled={asrLoading}
+										onChange={async (e) => {
+											const file = e.target.files?.[0];
+											if (!file) return;
+											setAsrLoading(true);
+											try {
+												const formData = new FormData();
+												const configRes = await orpcClient.larkAdmin.settings.get({});
+												const config = (configRes as Record<string, unknown> | undefined) ?? {};
+												const defaultAsr = (config.defaultAsrModel as string) ?? "";
+												const [providerId] = defaultAsr.split(":");
+												if (!providerId) {
+													toast.error("请先在管理后台配置 ASR 提供商");
+													setAsrLoading(false);
+													return;
+												}
+												formData.append("providerId", providerId);
+												formData.append("audioFile", file);
+												const res = await fetch("/api/asr/transcribe", {
+													method: "POST",
+													body: formData,
+												});
+												const json = await res.json();
+												if (json.text) {
+													setTranscriptText(json.text);
+													if (!topic && file.name) {
+														setTopic(
+															file.name.replace(/\.\w+$/, ""),
+														);
+													}
+													toast.success("转写完成");
+													setInputMode("text");
+												} else {
+													toast.error(json.error ?? "转写失败");
+												}
+											} catch {
+												toast.error("转写请求失败");
+											} finally {
+												setAsrLoading(false);
+											}
 										}}
 									/>
 								</label>
