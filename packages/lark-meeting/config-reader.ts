@@ -20,15 +20,13 @@ export async function getMemberAccessMode(): Promise<"open" | "whitelist"> {
   return value === "whitelist" ? "whitelist" : "open";
 }
 
-// 获取飞书应用凭证
+// 获取飞书应用凭证（env 优先，DB 降级）
 export async function getFeishuCredentials(): Promise<{
   appId: string | null;
   appSecret: string | null;
 }> {
-  const [appId, appSecret] = await Promise.all([
-    getConfig("feishu_app_id"),
-    getConfig("feishu_app_secret"),
-  ]);
+  const appId = process.env.FEISHU_APP_ID || (await getConfig("feishu_app_id"));
+  const appSecret = process.env.FEISHU_APP_SECRET || (await getConfig("feishu_app_secret"));
   return { appId, appSecret };
 }
 
