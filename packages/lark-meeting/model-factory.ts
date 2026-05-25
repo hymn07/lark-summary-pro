@@ -1,52 +1,70 @@
 import { createOpenAI } from "@ai-sdk/openai";
+import { db } from "@repo/database";
 import type { LanguageModel } from "ai";
-import { getModelProviders } from "./config-reader";
+import { getConfig } from "./config-reader";
 
 let _fastModel: LanguageModel | null = null;
-let _proModel: LanguageModel | null = null;
+let _fastModelKey: string | null = null;
 
-function findModelName(models: string[], keyword: string): string {
-  return models.find((m) => m.includes(keyword)) ?? models[0];
+let _textModel: LanguageModel | null = null;
+let _textModelKey: string | null = null;
+
+async function resolveModel(configKey: string): Promise<{ provider: { apiKey: string; apiBase: string }; modelName: string }> {
+  const config = await getConfig(configKey);
+  if (!config) {
+    throw new Error(`未配置 ${configKey}，请在管理后台选择模型`);
+  }
+
+  const idx = config.indexOf(":");
+  if (idx === -1) {
+    throw new Error(`${configKey} 格式无效，应为 providerId:modelName`);
+  }
+
+  const providerId = config.slice(0, idx);
+  const modelName = config.slice(idx + 1);
+
+  const provider = await db.modelProvider.findUnique({ where: { id: providerId } });
+  if (!provider) {
+    throw new Error(`模型提供商（${providerId}）不存在或已删除，请在管理后台重新选择模型`);
+  }
+
+  return {
+    provider: { apiKey: provider.apiKey, apiBase: provider.apiBase },
+    modelName,
+  };
 }
 
-function createModel(provider: { apiKey: string; apiBase: string; models: unknown }, keyword: string): LanguageModel {
+function createClient(apiKey: string, apiBase: string, modelName: string): LanguageModel {
   const client = createOpenAI({
-    apiKey: provider.apiKey,
-    baseURL: provider.apiBase,
+    apiKey,
+    baseURL: apiBase,
     compatibility: "compatible",
   });
-
-  const modelName = findModelName(provider.models as string[], keyword);
-  console.log(`[ModelFactory] 创建模型: ${modelName} (${keyword}) baseURL: ${provider.apiBase}`);
-
-  // 尝试 chat 模式（Chat Completions API）
   const model = client.chat(modelName);
   if (!model) throw new Error(`模型 ${modelName} 不可用`);
   return model;
 }
 
-// 获取快速模型（用于分类、摘要等轻量任务）
+// 获取快速模型（用于前置路由等轻量任务）
 export async function getFastModel(): Promise<LanguageModel> {
-  if (_fastModel) return _fastModel;
+  const { provider, modelName } = await resolveModel("default_fast_model");
+  const cacheKey = `${provider.apiBase}:${modelName}`;
 
-  const providers = await getModelProviders();
-  if (providers.length === 0) {
-    throw new Error("模型未配置：请在管理后台添加 LLM 提供商");
-  }
+  if (_fastModel && _fastModelKey === cacheKey) return _fastModel;
 
-  _fastModel = createModel(providers[0], "flash");
+  _fastModel = createClient(provider.apiKey, provider.apiBase, modelName);
+  _fastModelKey = cacheKey;
   return _fastModel;
 }
 
-// 获取主力模型（用于复杂推理、内容生成）
+// 获取主力模型（用于生成纪要等核心任务）
 export async function getTextModel(): Promise<LanguageModel> {
-  if (_proModel) return _proModel;
+  const { provider, modelName } = await resolveModel("default_text_model");
+  const cacheKey = `${provider.apiBase}:${modelName}`;
 
-  const providers = await getModelProviders();
-  if (providers.length === 0) {
-    throw new Error("模型未配置：请在管理后台添加 LLM 提供商");
-  }
+  if (_textModel && _textModelKey === cacheKey) return _textModel;
 
-  _proModel = createModel(providers[0], "pro");
-  return _proModel;
+  _textModel = createClient(provider.apiKey, provider.apiBase, modelName);
+  _textModelKey = cacheKey;
+  return _textModel;
 }

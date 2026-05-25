@@ -110,7 +110,7 @@ import { auth } from "../../../packages/auth/auth";
 
 ### Git 提交规则
 
-- **自主判断**：完成一个独立功能单元后，自动提交。不需要问我要不要 commit
+- **等待用户允许**：完成改动后不要主动 commit，等用户明确允许了再 commit
 - **提交格式**：Conventional Commits
   ```
   feat: 添加xxx功能

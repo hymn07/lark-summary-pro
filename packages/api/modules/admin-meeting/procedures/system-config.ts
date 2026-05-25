@@ -10,13 +10,17 @@ export const getSystemConfig = adminProcedure
     summary: "获取系统配置",
   })
   .handler(async () => {
-    const [memberMode, feishuAppId] = await Promise.all([
+    const [memberMode, feishuAppId, defaultFast, defaultText] = await Promise.all([
       getConfig("member_access_mode"),
       getConfig("feishu_app_id"),
+      getConfig("default_fast_model"),
+      getConfig("default_text_model"),
     ]);
     return {
       memberAccessMode: memberMode ?? "open",
       feishuAppId: feishuAppId ?? null,
+      defaultFastModel: defaultFast ?? null,
+      defaultTextModel: defaultText ?? null,
     };
   });
 
@@ -32,6 +36,8 @@ export const updateSystemConfig = adminProcedure
       memberAccessMode: z.enum(["open", "whitelist"]).optional(),
       feishuAppId: z.string().optional(),
       feishuAppSecret: z.string().optional(),
+      defaultFastModel: z.string().optional(),
+      defaultTextModel: z.string().optional(),
     }),
   )
   .handler(async ({ input }) => {
@@ -43,6 +49,12 @@ export const updateSystemConfig = adminProcedure
     }
     if (input.feishuAppSecret) {
       await setConfig("feishu_app_secret", input.feishuAppSecret);
+    }
+    if (input.defaultFastModel !== undefined) {
+      await setConfig("default_fast_model", input.defaultFastModel);
+    }
+    if (input.defaultTextModel !== undefined) {
+      await setConfig("default_text_model", input.defaultTextModel);
     }
     return { success: true };
   });

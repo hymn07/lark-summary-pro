@@ -1,6 +1,7 @@
 "use client";
 
 import { Input } from "@repo/ui/components/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { Textarea } from "@repo/ui/components/textarea";
 import { orpcClient } from "@shared/lib/orpc-client";
 import { orpc } from "@shared/lib/orpc-query-utils";
@@ -28,8 +29,8 @@ const ADMIN_CARDS = [
 		icon: Globe,
 		iconBg: "bg-sky-50",
 		iconColor: "text-sky-600",
-		title: "成员接入模式",
-		desc: "开放 / 审批模式切换",
+		title: "系统配置",
+		desc: "接入模式 / 默认模型",
 	},
 	{
 		key: "members",
@@ -118,8 +119,9 @@ export function AdminDashboard() {
 }
 
 /* ──────────────────────────────────────────
-   Member Access Mode Dialog
+   System Config Dialog
    ────────────────────────────────────────── */
+
 function MemberAccessDialog({
 	open,
 	onClose,
@@ -131,11 +133,17 @@ function MemberAccessDialog({
 	const { data: systemConfig } = useQuery(
 		orpc.larkAdmin.settings.get.queryOptions(),
 	);
+	const { data: providers } = useQuery(
+		orpc.larkAdmin.modelProviders.list.queryOptions(),
+	);
 
 	const updateConfigMutation = useMutation(
 		orpc.larkAdmin.settings.update.mutationOptions({
-			onSuccess: () => {
-				toast.success("成员接入模式已切换");
+			onSuccess: (_data, variables) => {
+				const msg = variables.memberAccessMode
+					? "成员接入模式已切换"
+					: "模型配置已更新";
+				toast.success(msg);
 				queryClient.invalidateQueries({
 					queryKey: orpc.larkAdmin.settings.get.queryKey(),
 				});
@@ -145,6 +153,16 @@ function MemberAccessDialog({
 
 	const config = (systemConfig as Record<string, unknown>) ?? {};
 	const memberMode = (config.memberAccessMode as string) ?? "open";
+	const defaultFast = (config.defaultFastModel as string) ?? "";
+	const defaultText = (config.defaultTextModel as string) ?? "";
+
+	// 从所有 provider 构建模型选项: "providerId:modelName"
+	const modelOptions = (providers as { id: string; name: string; models: string[] }[] ?? []).flatMap((p) =>
+		(p.models ?? []).map((m: string) => ({
+			value: `${p.id}:${m}`,
+			label: `${p.name} / ${m}`,
+		})),
+	);
 
 	if (!open) {
 		return null;
@@ -162,12 +180,12 @@ function MemberAccessDialog({
 				}
 			}}
 		>
-			<div className="minutes-modal-container bg-white border border-slate-100 w-full max-w-md rounded-[24px] shadow-[0_32px_80px_-16px_rgba(15,23,42,0.12)] overflow-hidden flex flex-col">
+			<div className="minutes-modal-container bg-white border border-slate-100 w-full max-w-md rounded-[24px] shadow-[0_32px_80px_-16px_rgba(15,23,42,0.12)] overflow-hidden flex flex-col max-h-[85vh]">
 				<div className="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
 					<div className="flex items-center space-x-2.5">
 						<Globe className="text-sky-500 h-5 w-5" />
 						<h3 className="text-base font-black text-slate-900 tracking-tight">
-							成员接入模式
+							系统配置
 						</h3>
 					</div>
 					<button
@@ -179,67 +197,131 @@ function MemberAccessDialog({
 					</button>
 				</div>
 
-				<div className="p-6 bg-[#F8F9FA] space-y-4">
-					<p className="text-xs text-slate-400">
-						控制新用户注册时是否需要管理员审批
-					</p>
-					<div className="grid grid-cols-2 gap-3">
-						<button
-							type="button"
-							onClick={() =>
-								updateConfigMutation.mutate({
-									memberAccessMode: "open",
-								})
-							}
-							className={`p-4 rounded-[16px] border-2 text-left transition-all ${
-								memberMode === "open"
-									? "border-indigo-200 bg-indigo-50/50 shadow-sm"
-									: "border-slate-100 hover:border-slate-200"
-							}`}
-						>
-							<div className="flex items-center gap-2 mb-1.5">
-								<span
-									className={`w-2 h-2 rounded-full ${memberMode === "open" ? "bg-indigo-500" : "bg-slate-300"}`}
-								/>
-								<p className="font-bold text-sm text-slate-900">
-									开放模式
+				<div className="p-6 bg-[#F8F9FA] space-y-5 overflow-y-auto">
+					{/* 成员接入模式 */}
+					<div className="space-y-3">
+						<p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+							成员接入模式
+						</p>
+						<div className="grid grid-cols-2 gap-3">
+							<button
+								type="button"
+								onClick={() =>
+									updateConfigMutation.mutate({
+										memberAccessMode: "open",
+									})
+								}
+								className={`p-4 rounded-[16px] border-2 text-left transition-all ${
+									memberMode === "open"
+										? "border-indigo-200 bg-indigo-50/50 shadow-sm"
+										: "border-slate-100 hover:border-slate-200"
+								}`}
+							>
+								<div className="flex items-center gap-2 mb-1.5">
+									<span
+										className={`w-2 h-2 rounded-full ${memberMode === "open" ? "bg-indigo-500" : "bg-slate-300"}`}
+									/>
+									<p className="font-bold text-sm text-slate-900">
+										开放模式
+									</p>
+								</div>
+								<p className="text-xs text-slate-400 leading-relaxed">
+									公司全员飞书登录即用
 								</p>
-							</div>
-							<p className="text-xs text-slate-400 leading-relaxed">
-								公司全员飞书登录即用
-							</p>
-						</button>
-						<button
-							type="button"
-							onClick={() =>
-								updateConfigMutation.mutate({
-									memberAccessMode: "whitelist",
-								})
-							}
-							className={`p-4 rounded-[16px] border-2 text-left transition-all ${
-								memberMode === "whitelist"
-									? "border-indigo-200 bg-indigo-50/50 shadow-sm"
-									: "border-slate-100 hover:border-slate-200"
-							}`}
-						>
-							<div className="flex items-center gap-2 mb-1.5">
-								<span
-									className={`w-2 h-2 rounded-full ${memberMode === "whitelist" ? "bg-indigo-500" : "bg-slate-300"}`}
-								/>
-								<p className="font-bold text-sm text-slate-900">
-									审批模式
+							</button>
+							<button
+								type="button"
+								onClick={() =>
+									updateConfigMutation.mutate({
+										memberAccessMode: "whitelist",
+									})
+								}
+								className={`p-4 rounded-[16px] border-2 text-left transition-all ${
+									memberMode === "whitelist"
+										? "border-indigo-200 bg-indigo-50/50 shadow-sm"
+										: "border-slate-100 hover:border-slate-200"
+								}`}
+							>
+								<div className="flex items-center gap-2 mb-1.5">
+									<span
+										className={`w-2 h-2 rounded-full ${memberMode === "whitelist" ? "bg-indigo-500" : "bg-slate-300"}`}
+									/>
+									<p className="font-bold text-sm text-slate-900">
+										审批模式
+									</p>
+								</div>
+								<p className="text-xs text-slate-400 leading-relaxed">
+									仅白名单成员可用
 								</p>
-							</div>
-							<p className="text-xs text-slate-400 leading-relaxed">
-								仅白名单成员可用
+							</button>
+						</div>
+					</div>
+
+					{/* 模型选择 */}
+					<div className="space-y-3">
+						<p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+							默认模型
+						</p>
+
+						{/* 快速模型 */}
+						<div className="space-y-1.5">
+							<label className="text-xs text-slate-500">
+								快速模型（前置路由、分类等轻量任务）
+							</label>
+							<Select
+								value={defaultFast}
+								onValueChange={(v) =>
+									updateConfigMutation.mutate({ defaultFastModel: v })
+								}
+							>
+								<SelectTrigger className="w-full rounded-xl">
+									<SelectValue placeholder="选择快速模型..." />
+								</SelectTrigger>
+								<SelectContent>
+									{modelOptions.map((opt) => (
+										<SelectItem key={opt.value} value={opt.value}>
+											{opt.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
+						{/* 主力模型 */}
+						<div className="space-y-1.5">
+							<label className="text-xs text-slate-500">
+								主力模型（生成纪要等核心任务）
+							</label>
+							<Select
+								value={defaultText}
+								onValueChange={(v) =>
+									updateConfigMutation.mutate({ defaultTextModel: v })
+								}
+							>
+								<SelectTrigger className="w-full rounded-xl">
+									<SelectValue placeholder="选择主力模型..." />
+								</SelectTrigger>
+								<SelectContent>
+									{modelOptions.map((opt) => (
+										<SelectItem key={opt.value} value={opt.value}>
+											{opt.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
+						{modelOptions.length === 0 && (
+							<p className="text-xs text-amber-600">
+								请先在「模型提供商」中添加 LLM 提供商
 							</p>
-						</button>
+						)}
 					</div>
 				</div>
 			</div>
 		</div>
 	);
-}
+
 
 /* ──────────────────────────────────────────
    Member List Dialog
@@ -1041,4 +1123,5 @@ function AdminPromptDialog({
 			)}
 		</>
 	);
+}
 }
