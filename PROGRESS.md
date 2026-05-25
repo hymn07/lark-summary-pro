@@ -81,6 +81,13 @@
 - meeting-fetcher + meeting-search：参会人姓名批量查询，解决"未知"显示
 - pipeline：handleMeetingEnded 增加批量路径，默认模板+无额外指令的用户共享 1 次 LLM
 
+### 多 LLM 提供商支持 + 步骤级模型选择 — 2026-05-22
+- model-factory.ts 重写：从 system_config 读 default_fast_model / default_text_model（格式 providerId:modelName），不再硬编码 providers[0]
+- 系统配置 API 扩展 defaultFastModel / defaultTextModel 字段
+- 管理后台「系统配置」弹窗新增快速模型和主力模型下拉框
+- 飞书凭证读取逻辑改为 env 优先、DB 降级
+- 数据库 system_config 已写入 DeepSeek 默认模型配置，兼容升级无需手动干预
+
 ### 会议同步策略
 ```
 用户打开会议记录页 → 后台 async 执行：
@@ -92,10 +99,11 @@
 
 ## 📋 待做
 
+- [ ] 测试多 LLM provider 选择和切换
+- [ ] 语音转文字（ASR）：上传录音文件 → 自动转写逐字稿，覆盖线下会议场景。需要用户配置 ASR provider（API Base + API Key + Model）
 - [ ] 真实飞书会议端到端测试
 - [ ] 文档 Block 写入 API 修复（目前 block_type 已修正，写入仍报 invalid param）
 - [ ] refresh_token 续期测试（code=20014）
-- [ ] 其他模型提供商支持
 
 ## ⚠️ 已知问题
 
