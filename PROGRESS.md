@@ -81,6 +81,12 @@
 - meeting-fetcher + meeting-search：参会人姓名批量查询，解决"未知"显示
 - pipeline：handleMeetingEnded 增加批量路径，默认模板+无额外指令的用户共享 1 次 LLM
 
+### ASR 语音转文字 — 2026-05-25
+- 新增 asr-client.ts：三合一 adapter（OpenAI Whisper / 阿里云 DashScope / 火山引擎），根据 apiBase 自动路由
+- 千问3-ASR-Flash 走 base64 data URI 直传，Fun-ASR/火山走 MinIO 临时上传 + 异步轮询
+- 新增 POST /api/asr/transcribe 接口（FormData 接收 providerId + audioFile）
+- 手动添加会议 Dialog 新增「上传录音」模式，支持 mp3/wav/m4a/flac/ogg 等
+
 ### 多 LLM 提供商支持 + 步骤级模型选择 — 2026-05-22
 - model-factory.ts 重写：从 system_config 读 default_fast_model / default_text_model（格式 providerId:modelName），不再硬编码 providers[0]
 - 系统配置 API 扩展 defaultFastModel / defaultTextModel 字段
@@ -100,7 +106,7 @@
 ## 📋 待做
 
 - [ ] 测试多 LLM provider 选择和切换
-- [ ] 语音转文字（ASR）：上传录音文件 → 自动转写逐字稿，覆盖线下会议场景。需要用户配置 ASR provider（API Base + API Key + Model）
+- [ ] 测试 ASR 语音转文字功能（三种 adapter）
 - [ ] 真实飞书会议端到端测试
 - [ ] 文档 Block 写入 API 修复（目前 block_type 已修正，写入仍报 invalid param）
 - [ ] refresh_token 续期测试（code=20014）
