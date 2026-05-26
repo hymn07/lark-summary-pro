@@ -5,6 +5,9 @@ import { NavBar } from "@saas/shared/components/NavBar";
 import { type PropsWithChildren } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarProvider, useSidebar } from "../lib/sidebar-context";
+import { AgentProvider } from "@chat/components/AgentProvider";
+import { AgentFloatingButton } from "@chat/components/AgentFloatingButton";
+import { AgentPanel } from "@chat/components/AgentPanel";
 
 function AppContent({ children }: PropsWithChildren) {
   const { isCollapsed } = useSidebar();
@@ -23,6 +26,8 @@ function AppContent({ children }: PropsWithChildren) {
           <div key={pathname} className="container px-0 h-full page-enter">{children}</div>
         </main>
       </div>
+      <AgentFloatingButton />
+      <AgentPanel />
     </div>
   );
 }
@@ -30,7 +35,9 @@ function AppContent({ children }: PropsWithChildren) {
 export function AppWrapper({ children }: PropsWithChildren) {
   return (
     <SidebarProvider>
-      <AppContent>{children}</AppContent>
+      <AgentProvider>
+        <AppContent>{children}</AppContent>
+      </AgentProvider>
     </SidebarProvider>
   );
 }

@@ -453,6 +453,21 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/agent:
+    dependencies:
+      '@repo/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../database
+      '@repo/lark-meeting':
+        specifier: workspace:*
+        version: link:../lark-meeting
+      zod:
+        specifier: ^4.3.6
+        version: 4.4.3
+
   packages/ai:
     dependencies:
       '@ai-sdk/anthropic':

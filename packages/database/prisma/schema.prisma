@@ -256,6 +256,9 @@ model MeetingRecord {
   skippedReason    String?
   aiSummary        String?             @db.Text
   errorMessage     String?             @db.Text
+  minutesContent   String?             @db.Text   // 完整 Markdown 纪要（Agent 检索用）
+  minutesJson      Json?                         // 完整结构化纪要（结构化查询用）
+  searchText       String?             @db.Text   // 去重拼接文本（contains 关键词搜索）
   userId           String
   user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   processingLogs   ProcessingLog[]

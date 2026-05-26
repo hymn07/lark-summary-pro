@@ -35,10 +35,28 @@ async function resolveModel(configKey: string): Promise<{ provider: { apiKey: st
 }
 
 function createClient(apiKey: string, apiBase: string, modelName: string): LanguageModel {
+  // DeepSeek thinking mode workaround: inject reasoning_effort=none
+  // to prevent "reasoning_content must be passed back" error in tool calling loops
+  const isDeepSeek = apiBase.includes("deepseek");
+
   const client = createOpenAI({
     apiKey,
     baseURL: apiBase,
     compatibility: "compatible",
+    fetch: isDeepSeek
+      ? async (url, init) => {
+          if (init?.body && typeof init.body === "string") {
+            try {
+              const parsed = JSON.parse(init.body);
+              // Disable DeepSeek thinking mode to prevent reasoning_content errors in tool calling
+              delete parsed.reasoning_effort;
+              parsed.thinking = { type: "disabled" };
+              init = { ...init, body: JSON.stringify(parsed) };
+            } catch { /* pass */ }
+          }
+          return fetch(url, init);
+        }
+      : undefined,
   });
   const model = client.chat(modelName);
   if (!model) throw new Error(`模型 ${modelName} 不可用`);

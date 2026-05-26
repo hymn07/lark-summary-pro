@@ -1,0 +1,13 @@
+{
+	"name": "@repo/agent",
+	"version": "0.0.1",
+	"private": true,
+	"main": "./index.ts",
+	"scripts": {},
+	"dependencies": {
+		"@repo/ai": "workspace:*",
+		"@repo/database": "workspace:*",
+		"@repo/lark-meeting": "workspace:*",
+		"zod": "^4.3.6"
+	}
+}

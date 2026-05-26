@@ -103,17 +103,66 @@
 新会议 → 飞书事件监听自动加入
 ```
 
+### Agent 信息管理平台 — 2026-05-26
+
+#### 增强 LLM 输出 Schema（10 维度结构化提取）
+- MeetingMinutesSchema 重写：从 5 个简单字段升级到 10 维度
+  - 新增 discussionPoints（议题×结论）、entities（实体×类型×评价）、decisions（决策×理由×状态×影响）
+  - 新增 metrics（指标×数值×趋势）、risks（风险×严重度×缓解×责任人）、keyQuotes（关键发言引用）
+  - 新增 sentiment（情绪判断）、followUps（后续关注×触发条件）、keywords（检索关键词）、categories（分类标签）
+  - keyPoints / summary 保留向后兼容，normalizeMinutes() 自动补全缺失字段
+- prompt-assembler.ts：更新 DEFAULT_CORE_PROMPT 和 OUTPUT_FORMAT_REQUIREMENT
+  - LLM 提示词新增实体识别、指标提取、风险标记、情绪判断、后续关注等指令
+  - 输出格式从 5 字段扩展到完整 10 维度 JSON Schema 示例
+
+#### 数据库：MeetingRecord 新增检索字段
+- MeetingRecord 新增 3 个字段：
+  - `minutesContent` @db.Text — 完整 Markdown 纪要（Agent 展示用）
+  - `minutesJson` Json — 完整结构化纪要（结构化查询用）
+  - `searchText` @db.Text — 去重拼接所有文本（Prisma contains 关键词搜索）
+- pipeline.ts：createMeetingRecord() 写入新字段，buildMinutesMarkdown() + buildSearchText() 生成
+
+#### doc-creator 飞书文档增强
+- formatMinutesAsBlocks() 用新结构化数据生成更丰富飞书文档：
+  讨论要点（含发言人和结论）、实体（含类型和评价）、决策（含理由和状态）、指标（含趋势）、
+  风险（含严重度和缓解措施）、待办（含负责人和优先级）、关键引用、情绪判断、后续关注
+
+#### Agent 后端 packages/agent/
+- 新建包：package.json / tsconfig.json / core / tools
+- core/types.ts：PageContext、AgentConfig、ToolContext 类型
+- core/tool-registry.ts：ToolRegistry class（builtin 工具注册 + 合并）
+- core/planner.ts：buildSystemPrompt()（~70 行中文系统提示词，含上下文构建）+ buildAgentConfig()
+- 12 个 Agent 工具（Vercel AI SDK tool() 格式）：
+  search_meetings（核心：关键词搜索 searchText）、get_meeting（完整结构化详情）、list_meeting_records
+  get_feishu_meetings、get_feishu_meeting_detail（含逐字稿）
+  generate_meeting_minutes、retry_meeting_record
+  get_user_settings、update_user_settings
+  list_prompt_versions、create_prompt_from_samples
+  get_stats、get_system_config
+
+#### Agent 聊天 API
+- POST /api/agent/chat：rate limit（30/分钟/IP）+ better-auth session + ToolLoopAgent + streaming
+- ToolLoopAgent 来自 Vercel AI SDK v6，maxSteps=10，stopWhen=stepCountIs()
+
+#### 前端 Agent UI
+- AgentProvider：React Context（面板开关、pendingQuery 跨组件传递）
+- AgentFloatingButton：右下角浮动按钮，premium-card 投影，hover 放大
+- AgentPanel：380px Drawer 从右侧滑入，useChat(@ai-sdk/react) + DefaultChatTransport
+  - 消息流式渲染、工具调用脉冲动画、快捷提问 chips
+  - 移动端全屏 Sheet 模式
+- MeetingResultCard：会议查询结果迷你卡片（状态 badge、实体、链接）
+- useChatHistory：localStorage 会话持久化（最多 20 个）
+- AppWrapper 集成：AgentProvider + AgentFloatingButton + AgentPanel
+- @chat/* 路径别名
+
 ## 📋 待做
 
 - [ ] 测试多 LLM provider 选择和切换
 - [ ] 测试 ASR 语音转文字功能（三种 adapter）
 - [ ] 真实飞书会议端到端测试
-- [ ] 文档 Block 写入 API 修复（目前 block_type 已修正，写入仍报 invalid param）
-- [ ] refresh_token 续期测试（code=20014）
+- [ ] Agent 端到端验证（启动 dev → 点击浮动按钮 → 提问 → 验证工具调用和流式渲染）
 
 ## ⚠️ 已知问题
 
-- 飞书文档 Block 写入报 invalid param（文档创建成功，内容写入失败，不影响 URL 生成）
-- refresh token 续期报 code=20014（OAuth v2 endpoint 可能需要不同参数）
 - 逐字稿拉取依赖飞书妙记额度
 - 用户重新登录需 prompt=consent 才能拿到新 scope

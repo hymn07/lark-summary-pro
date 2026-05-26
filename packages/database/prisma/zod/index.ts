@@ -78,7 +78,7 @@ export type PromptVersionScalarFieldEnum = z.infer<typeof PromptVersionScalarFie
 
 // File: MeetingRecordScalarFieldEnum.schema.ts
 
-export const MeetingRecordScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'status', 'promptVersionId', 'docUrl', 'docToken', 'skippedReason', 'aiSummary', 'errorMessage', 'userId', 'isDeleted', 'createdAt', 'updatedAt'])
+export const MeetingRecordScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'status', 'promptVersionId', 'docUrl', 'docToken', 'skippedReason', 'aiSummary', 'errorMessage', 'minutesContent', 'minutesJson', 'searchText', 'userId', 'isDeleted', 'createdAt', 'updatedAt'])
 
 export type MeetingRecordScalarFieldEnum = z.infer<typeof MeetingRecordScalarFieldEnumSchema>;
 
@@ -136,17 +136,17 @@ export const SortOrderSchema = z.enum(['asc', 'desc'])
 
 export type SortOrder = z.infer<typeof SortOrderSchema>;
 
-// File: JsonNullValueInput.schema.ts
-
-export const JsonNullValueInputSchema = z.enum(['JsonNull'])
-
-export type JsonNullValueInput = z.infer<typeof JsonNullValueInputSchema>;
-
 // File: NullableJsonNullValueInput.schema.ts
 
 export const NullableJsonNullValueInputSchema = z.enum(['DbNull', 'JsonNull'])
 
 export type NullableJsonNullValueInput = z.infer<typeof NullableJsonNullValueInputSchema>;
+
+// File: JsonNullValueInput.schema.ts
+
+export const JsonNullValueInputSchema = z.enum(['JsonNull'])
+
+export type JsonNullValueInput = z.infer<typeof JsonNullValueInputSchema>;
 
 // File: QueryMode.schema.ts
 
@@ -392,6 +392,9 @@ export const MeetingRecordSchema = z.object({
   skippedReason: z.string().nullish(),
   aiSummary: z.string().nullish(),
   errorMessage: z.string().nullish(),
+  minutesContent: z.string().nullish(),
+  minutesJson: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  searchText: z.string().nullish(),
   userId: z.string(),
   isDeleted: z.boolean(),
   createdAt: z.date(),

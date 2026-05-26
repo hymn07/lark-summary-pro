@@ -142,66 +142,128 @@ export async function createFeishuDoc(
 function formatMinutesAsBlocks(minutes: MeetingMinutes) {
   const blocks: Record<string, unknown>[] = [];
 
-  // 摘要
-  blocks.push({
+  const heading2 = (text: string) => ({
+    block_type: 4,
+    heading2: { elements: [{ text_run: { content: text } }] },
+  });
+  const bullet = (text: string) => ({
     block_type: 2,
-    text: {
-      elements: [{ text_run: { content: minutes.summary } }],
-    },
+    text: { elements: [{ text_run: { content: `· ${text}` } }] },
+  });
+  const para = (text: string) => ({
+    block_type: 2,
+    text: { elements: [{ text_run: { content: text } }] },
   });
 
-  // 要点
-  if (minutes.keyPoints.length > 0) {
-    blocks.push({
-      block_type: 4,
-      heading2: {
-        elements: [{ text_run: { content: "关键要点" } }],
-      },
-    });
+  // 摘要
+  blocks.push(para(minutes.abstract || minutes.summary));
+
+  // 分类标签
+  if (minutes.categories && minutes.categories.length > 0) {
+    blocks.push(para(`🏷 ${minutes.categories.join(" · ")}`));
+  }
+
+  // 讨论要点
+  if (minutes.discussionPoints && minutes.discussionPoints.length > 0) {
+    blocks.push(heading2("讨论要点"));
+    for (const dp of minutes.discussionPoints) {
+      const speakers = dp.speakers.length > 0 ? `【${dp.speakers.join("、")}】` : "";
+      blocks.push(bullet(`**${dp.topic}** ${speakers}`));
+      blocks.push(para(`  ${dp.summary}`));
+      if (dp.conclusion) blocks.push(para(`  → 结论：${dp.conclusion}`));
+    }
+  } else if (minutes.keyPoints.length > 0) {
+    // 向后兼容：旧版没有 discussionPoints 时用 keyPoints
+    blocks.push(heading2("关键要点"));
     for (const point of minutes.keyPoints) {
-      blocks.push({
-        block_type: 2,
-        text: {
-          elements: [{ text_run: { content: `· ${point}` } }],
-        },
-      });
+      blocks.push(bullet(point));
+    }
+  }
+
+  // 实体
+  if (minutes.entities && minutes.entities.length > 0) {
+    blocks.push(heading2("涉及实体"));
+    for (const e of minutes.entities) {
+      const roleTag = e.role ? `[${e.role}] ` : "";
+      const assess = e.assessment ? ` — ${e.assessment}` : "";
+      blocks.push(bullet(`**${e.name}** ${roleTag}(${e.type})${assess}`));
     }
   }
 
   // 决策
   if (minutes.decisions && minutes.decisions.length > 0) {
-    blocks.push({
-      block_type: 4,
-      heading2: {
-        elements: [{ text_run: { content: "会议决策" } }],
-      },
-    });
+    blocks.push(heading2("会议决策"));
     for (const d of minutes.decisions) {
-      blocks.push({
-        block_type: 2,
-        text: {
-          elements: [{ text_run: { content: `· ${d}` } }],
-        },
-      });
+      const by = d.decidedBy ? `（${d.decidedBy}）` : "";
+      const status = d.status ? ` [${d.status}]` : "";
+      blocks.push(bullet(`**${d.decision}**${by}${status}`));
+      if (d.rationale) blocks.push(para(`  理由：${d.rationale}`));
+      if (d.impact) blocks.push(para(`  影响：${d.impact}`));
+    }
+  }
+
+  // 数据指标
+  if (minutes.metrics && minutes.metrics.length > 0) {
+    blocks.push(heading2("关键数据"));
+    for (const m of minutes.metrics) {
+      const val = m.value ? `: ${m.value}${m.unit ?? ""}` : "";
+      const trend = m.trend ? ` [${m.trend}]` : "";
+      const comp = m.comparison ? ` (${m.comparison})` : "";
+      blocks.push(bullet(`**${m.name}**${val}${trend}${comp}`));
+      if (m.context) blocks.push(para(`  ${m.context}`));
+    }
+  }
+
+  // 风险
+  if (minutes.risks && minutes.risks.length > 0) {
+    blocks.push(heading2("风险 & 问题"));
+    for (const r of minutes.risks) {
+      const severityIcon = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" }[r.severity] ?? "⚪";
+      const status = r.status ? ` [${r.status}]` : "";
+      const owner = r.owner ? ` @${r.owner}` : "";
+      blocks.push(bullet(`${severityIcon} **${r.risk}**${status}${owner}`));
+      if (r.mitigation) blocks.push(para(`  缓解：${r.mitigation}`));
     }
   }
 
   // 待办
   if (minutes.actionItems && minutes.actionItems.length > 0) {
-    blocks.push({
-      block_type: 4,
-      heading2: {
-        elements: [{ text_run: { content: "待办事项" } }],
-      },
-    });
+    blocks.push(heading2("待办事项"));
     for (const item of minutes.actionItems) {
-      const text = item.assignee ? `- [ ] ${item.task} (@${item.assignee})` : `- [ ] ${item.task}`;
-      blocks.push({
-        block_type: 2,
-        text: {
-          elements: [{ text_run: { content: text } }],
-        },
-      });
+      const owner = item.owner ? ` @${item.owner}` : "";
+      const deadline = item.deadline ? ` ⏰${item.deadline}` : "";
+      const priority = item.priority ? ` [${item.priority}]` : "";
+      const dep = item.dependsOn ? ` (依赖: ${item.dependsOn})` : "";
+      blocks.push(bullet(`- [ ] ${item.task}${owner}${deadline}${priority}${dep}`));
+    }
+  }
+
+  // 关键引用
+  if (minutes.keyQuotes && minutes.keyQuotes.length > 0) {
+    blocks.push(heading2("关键发言"));
+    for (const q of minutes.keyQuotes) {
+      const speaker = q.speaker ? `— ${q.speaker}` : "";
+      blocks.push(para(`> "${q.quote}" ${speaker}`));
+    }
+  }
+
+  // 情绪
+  if (minutes.sentiment) {
+    const s = minutes.sentiment;
+    const label = { positive: "😊 积极", neutral: "😐 中性", negative: "😟 消极", mixed: "🤔 分歧" }[s.overall] ?? s.overall;
+    blocks.push(heading2("整体判断"));
+    blocks.push(para(label));
+    if (s.highlights?.length) blocks.push(para(`亮点：${s.highlights.join("；")}`));
+    if (s.concerns?.length) blocks.push(para(`担忧：${s.concerns.join("；")}`));
+  }
+
+  // 后续关注
+  if (minutes.followUps && minutes.followUps.length > 0) {
+    blocks.push(heading2("后续关注"));
+    for (const f of minutes.followUps) {
+      const trigger = f.trigger ? ` → ${f.trigger}` : "";
+      const owner = f.owner ? ` @${f.owner}` : "";
+      blocks.push(bullet(`**${f.topic}**${trigger}${owner}`));
     }
   }
 

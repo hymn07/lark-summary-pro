@@ -1,11 +1,24 @@
 import { db, decryptField } from "@repo/database";
-import type { FeishuMeetingEndedEvent, PipelineContext, ProcessResult } from "./types";
+import type { FeishuMeetingEndedEvent, PipelineContext, ProcessResult, MeetingMinutes } from "./types";
 import { fetchMeetingDetail, tryFetchTranscript } from "./meeting-fetcher";
 import { routeParticipants } from "./participant-router";
 import { runPreRoute } from "./pre-router";
 import { assemblePrompt } from "./prompt-assembler";
 import { generateMinutes } from "./llm-generator";
 import { createFeishuDoc } from "./doc-creator";
+
+// 确保向后兼容：补全旧版字段
+function normalizeMinutes(minutes: MeetingMinutes): void {
+  if (!minutes.summary && minutes.abstract) {
+    (minutes as Record<string, unknown>).summary = minutes.abstract;
+  }
+  if (!minutes.abstract && minutes.summary) {
+    (minutes as Record<string, unknown>).abstract = minutes.summary;
+  }
+  if ((!minutes.keyPoints || minutes.keyPoints.length === 0) && minutes.discussionPoints?.length) {
+    (minutes as Record<string, unknown>).keyPoints = minutes.discussionPoints.map((d) => d.summary);
+  }
+}
 
 // 手动生成：指定用户在指定会议直接生成纪要（不经过参会人路由）
 export async function generateForUser(
@@ -73,6 +86,7 @@ export async function generateForUser(
       await createMeetingRecord(ctx, detail, "failed", null, undefined, "LLM 生成失败");
       return { status: "failed", errorMessage: "LLM 生成失败" };
     }
+    normalizeMinutes(minutes);
     log(`LLM 完成: ${minutes.title}`);
 
     // Step 5: 创建飞书文档（用 user token）
@@ -85,7 +99,7 @@ export async function generateForUser(
     log(`文档创建: ${docUrl}`);
 
     // Step 6: 记录成功
-    const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes.summary);
+    const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes);
     await createProcessingLog(record.id, "completed", "success", "纪要生成成功");
     return { status: "completed", meetingRecordId: record.id, docUrl };
   } catch (error) {
@@ -222,6 +236,7 @@ export async function handleMeetingEnded(
           results.push({ status: "failed", meetingRecordId: record.id, errorMessage: "LLM 生成失败" });
         }
       } else {
+        normalizeMinutes(minutes);
         log(`批量 LLM 完成: ${minutes.title}`);
         // 给每人各建一份文档 + 协作者
         for (const ctx of batchGroup) {
@@ -234,7 +249,7 @@ export async function handleMeetingEnded(
             continue;
           }
           userLog(`文档创建: ${docUrl}`);
-          const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes.summary);
+          const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes);
           results.push({ status: "completed", meetingRecordId: record.id, docUrl });
           await createProcessingLog(record.id, "completed", "success", "纪要生成成功（批量）");
         }
@@ -278,6 +293,7 @@ export async function handleMeetingEnded(
         results.push({ status: "failed", errorMessage: "LLM 生成失败" });
         continue;
       }
+      normalizeMinutes(minutes);
       userLog(`Step 4 完成: ${minutes.title}`);
 
       // Step 5: 创建飞书文档（tenant token + 协作者）
@@ -292,7 +308,7 @@ export async function handleMeetingEnded(
       userLog(`Step 5 完成: ${docUrl}`);
 
       // Step 6: 记录成功
-      const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes.summary);
+      const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes);
       results.push({ status: "completed", meetingRecordId: record.id, docUrl });
       userLog("Step 6 完成: 纪要已保存");
 
@@ -316,8 +332,22 @@ async function createMeetingRecord(
   docUrl: string | null,
   skippedReason?: string,
   errorMessage?: string,
-  aiSummary?: string,
+  minutes?: MeetingMinutes | string,
 ) {
+  let aiSummary: string | undefined;
+  let minutesContent: string | undefined;
+  let minutesJson: unknown | undefined;
+  let searchText: string | undefined;
+
+  if (minutes && typeof minutes !== "string") {
+    aiSummary = minutes.summary || minutes.abstract;
+    minutesJson = minutes;
+    minutesContent = buildMinutesMarkdown(minutes);
+    searchText = buildSearchText(minutes);
+  } else if (typeof minutes === "string") {
+    aiSummary = minutes;
+  }
+
   return db.meetingRecord.create({
     data: {
       meetingId: ctx.meetingId,
@@ -331,10 +361,167 @@ async function createMeetingRecord(
       promptVersionId: ctx.corePrompt ? ctx.userSettings?.activePromptVersionId : null,
       docUrl,
       aiSummary,
+      minutesContent,
+      minutesJson: minutesJson as unknown as Record<string, never> | undefined,
+      searchText,
       skippedReason,
       errorMessage,
     },
   });
+}
+
+// 生成完整 Markdown 纪要文本
+function buildMinutesMarkdown(minutes: MeetingMinutes): string {
+  const lines: string[] = [];
+  lines.push(`# ${minutes.title || "会议纪要"}`);
+  lines.push("");
+  lines.push(minutes.abstract || minutes.summary || "");
+  lines.push("");
+
+  if (minutes.categories?.length) {
+    lines.push(`> 分类：${minutes.categories.join(" · ")}`);
+    lines.push("");
+  }
+
+  if (minutes.discussionPoints?.length) {
+    lines.push("## 讨论要点");
+    for (const dp of minutes.discussionPoints) {
+      const speakers = dp.speakers.length ? `（${dp.speakers.join("、")}）` : "";
+      lines.push(`- **${dp.topic}**${speakers}: ${dp.summary}${dp.conclusion ? ` → ${dp.conclusion}` : ""}`);
+    }
+    lines.push("");
+  }
+
+  if (minutes.entities?.length) {
+    lines.push("## 涉及实体");
+    for (const e of minutes.entities) {
+      lines.push(`- **${e.name}** [${e.type}]${e.role ? ` ${e.role}` : ""}${e.assessment ? `: ${e.assessment}` : ""}`);
+    }
+    lines.push("");
+  }
+
+  if (minutes.decisions?.length) {
+    lines.push("## 会议决策");
+    for (const d of minutes.decisions) {
+      lines.push(`- **${d.decision}**${d.decidedBy ? ` (${d.decidedBy})` : ""}${d.status ? ` [${d.status}]` : ""}`);
+    }
+    lines.push("");
+  }
+
+  if (minutes.metrics?.length) {
+    lines.push("## 关键数据");
+    for (const m of minutes.metrics) {
+      lines.push(`- **${m.name}**${m.value ? `: ${m.value}${m.unit ?? ""}` : ""}${m.trend ? ` [${m.trend}]` : ""}`);
+    }
+    lines.push("");
+  }
+
+  if (minutes.risks?.length) {
+    lines.push("## 风险 & 问题");
+    for (const r of minutes.risks) {
+      lines.push(`- [${r.severity}] **${r.risk}**${r.owner ? ` @${r.owner}` : ""}${r.status ? ` [${r.status}]` : ""}`);
+    }
+    lines.push("");
+  }
+
+  if (minutes.actionItems?.length) {
+    lines.push("## 待办事项");
+    for (const a of minutes.actionItems) {
+      lines.push(`- [ ] ${a.task}${a.owner ? ` @${a.owner}` : ""}${a.deadline ? ` ⏰${a.deadline}` : ""}${a.priority ? ` [${a.priority}]` : ""}`);
+    }
+    lines.push("");
+  }
+
+  if (minutes.keyQuotes?.length) {
+    lines.push("## 关键发言");
+    for (const q of minutes.keyQuotes) {
+      lines.push(`> "${q.quote}" ${q.speaker ? `— ${q.speaker}` : ""}`);
+    }
+    lines.push("");
+  }
+
+  if (minutes.followUps?.length) {
+    lines.push("## 后续关注");
+    for (const f of minutes.followUps) {
+      lines.push(`- **${f.topic}**${f.trigger ? ` → ${f.trigger}` : ""}${f.owner ? ` @${f.owner}` : ""}`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+// 生成搜索优化文本（去重拼接所有可检索字段）
+function buildSearchText(minutes: MeetingMinutes): string {
+  const parts: string[] = [];
+  if (minutes.title) parts.push(minutes.title);
+  if (minutes.abstract) parts.push(minutes.abstract);
+  if (minutes.summary) parts.push(minutes.summary);
+  if (minutes.categories?.length) parts.push(minutes.categories.join(" "));
+
+  if (minutes.discussionPoints) {
+    for (const dp of minutes.discussionPoints) {
+      parts.push(dp.topic, dp.summary);
+      if (dp.conclusion) parts.push(dp.conclusion);
+    }
+  }
+
+  if (minutes.entities) {
+    for (const e of minutes.entities) {
+      parts.push(e.name);
+      if (e.role) parts.push(e.role);
+      if (e.assessment) parts.push(e.assessment);
+    }
+  }
+
+  if (minutes.decisions) {
+    for (const d of minutes.decisions) {
+      parts.push(d.decision);
+      if (d.rationale) parts.push(d.rationale);
+    }
+  }
+
+  if (minutes.metrics) {
+    for (const m of minutes.metrics) {
+      parts.push(m.name);
+      if (m.context) parts.push(m.context);
+    }
+  }
+
+  if (minutes.risks) {
+    for (const r of minutes.risks) {
+      parts.push(r.risk);
+      if (r.mitigation) parts.push(r.mitigation);
+    }
+  }
+
+  if (minutes.actionItems) {
+    for (const a of minutes.actionItems) {
+      parts.push(a.task);
+      if (a.owner) parts.push(a.owner);
+    }
+  }
+
+  if (minutes.keyQuotes) {
+    for (const q of minutes.keyQuotes) {
+      parts.push(q.quote);
+      if (q.speaker) parts.push(q.speaker);
+    }
+  }
+
+  if (minutes.sentiment?.highlights) parts.push(...minutes.sentiment.highlights);
+  if (minutes.sentiment?.concerns) parts.push(...minutes.sentiment.concerns);
+
+  if (minutes.followUps) {
+    for (const f of minutes.followUps) {
+      parts.push(f.topic);
+    }
+  }
+
+  if (minutes.keywords?.length) parts.push(...minutes.keywords);
+
+  // 去重
+  return [...new Set(parts.filter(Boolean))].join(" ");
 }
 
 async function createProcessingLog(
