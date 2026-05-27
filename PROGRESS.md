@@ -144,19 +144,58 @@
 - POST /api/agent/chat：rate limit（30/分钟/IP）+ better-auth session + ToolLoopAgent + streaming
 - ToolLoopAgent 来自 Vercel AI SDK v6，maxSteps=10，stopWhen=stepCountIs()
 
-#### 前端 Agent UI
-- AgentProvider：React Context（面板开关、pendingQuery 跨组件传递）
-- AgentFloatingButton：右下角浮动按钮，premium-card 投影，hover 放大
-- AgentPanel：380px Drawer 从右侧滑入，useChat(@ai-sdk/react) + DefaultChatTransport
-  - 消息流式渲染、工具调用脉冲动画、快捷提问 chips
-  - 移动端全屏 Sheet 模式
-- MeetingResultCard：会议查询结果迷你卡片（状态 badge、实体、链接）
-- useChatHistory：localStorage 会话持久化（最多 20 个）
-- AppWrapper 集成：AgentProvider + AgentFloatingButton + AgentPanel
-- @chat/* 路径别名
+#### 前端弹窗视觉重构 + 抽屉动画修复 + 品牌图标替换 — 2026-05-28
+
+#### 会议纪要详情弹窗（MinutesDetailDialog）视觉重构
+- 纯白底色统一布局（去掉 Body 灰色分区），整体更简洁大气
+- 增强阴影：双层 box-shadow（0 20px 40px + 0 8px 16px），弹窗浮起感明显
+- 去嵌套：摘要文本卡片改为极淡灰 bg-slate-50/60，透明边框，减少"卡片套卡片"疲劳
+- "● 会议纪要详情"标签：蓝色 dot 引导线 + text-indigo-500
+- 全局字号提升：标题 base→lg，正文 13px→14px，按钮 10/11px→11/12px
+- 紧凑布局：Header/Body/Footer padding 统一收缩
+
+#### 源会议抽屉（MeetingDetailDialog）动画修复
+- 双层关闭：抽屉 overlay z-index 从 z-40 提升至 z-[55]，点击先关抽屉 → 再关弹窗
+- 滑入动画：showPanel 状态 + requestAnimationFrame，先挂载无 active → 下一帧加 active → 过渡播放
+- 关闭动画：displayM ref 保留数据，滑出 400ms 后才 unmount
+- 侧栏 Logo 闪现修复：whitespace-nowrap 防止展开时换行
+
+#### 品牌图标替换
+- Logo 组件：PNG 图片 → Sparkles 图标（深色渐变圆角方块 bg-gradient-to-br from-gray-800 to-gray-900）
+- Favicon：icon.png → icon.svg（统一风格）
+- 清理所有旧 brand asset（favicon.ico / logo-dark.png / logo-light.png / icon-*.png）
+
+#### 会议纪要列表分页
+- MinutesList 后端游标分页（PAGE_SIZE=5，cursor stack 支持前后翻页）
+- 切 tab 自动重置分页
+- 弹窗定位修复：page-enter 动画 both→backwards，消除 CSS containing block 对 fixed 定位的影响
+
+#### 弹窗毛玻璃遮罩
+- 白色半透明背景 rgba(255,255,255,0.4) + blur 16px，替代暗色遮罩
+- 有视觉分离但不暗沉
 
 ## 📋 待做
 
+### 🔴 Bug 修复
+- [ ] **飞书文档二次生成内容写入失败**：第一次生成纪要写入飞书文档正常，后续再次生成时文档创建成功、标题可见，但正文内容未写入。需排查 doc-creator 的文档更新逻辑（create vs update 路径）
+
+### 🟡 新功能
+
+- [ ] **AI 对话记忆系统**
+  - 收集用户在 Agent 聊天中的提问偏好和模式
+  - 分析高频查询类型，发现用户关心的信息维度
+  - 反馈到结构化提取 Schema：如发现用户常问"花了多少钱"，可新增预算/费用字段
+  - 记忆存储：用户维度（每位用户独立画像）+ 增量更新
+
+- [ ] **会议待办（To-Do）提取与维护系统**
+  - 结构化提取：从会议纪要中严格提取待办事项（action items）
+  - 格式：负责人 + 内容 + 截止时间（如有提及）+ 优先级
+  - 维护到指定飞书文档：首次创建文档并记录 docUrl 到 DB
+  - 容错处理：文档被删 → 创建新文档并更新 DB 链接
+  - 并发安全：多场会议同时提取时，文档写入不冲突
+  - DB 设计：新增 UserTodoDoc 表（userId, docUrl, docToken, createdAt, updatedAt）
+
+### ⚪ 测试
 - [ ] 测试多 LLM provider 选择和切换
 - [ ] 测试 ASR 语音转文字功能（三种 adapter）
 - [ ] 真实飞书会议端到端测试
@@ -166,3 +205,4 @@
 
 - 逐字稿拉取依赖飞书妙记额度
 - 用户重新登录需 prompt=consent 才能拿到新 scope
+- 飞书文档二次生成内容写入失败（见待做 Bug）
