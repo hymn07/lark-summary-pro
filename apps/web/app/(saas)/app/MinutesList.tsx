@@ -6,6 +6,8 @@ import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	AlertCircle,
+	ArrowLeft,
+	ArrowRight,
 	CheckCircle2,
 	ExternalLink,
 	Loader2,
@@ -21,6 +23,8 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { MinutesDetailDialog } from "./MinutesDetailDialog";
+
+const PAGE_SIZE = 5;
 
 const statusConfig = {
 	completed: {
@@ -61,12 +65,14 @@ export function MinutesList() {
 	const [status, setStatus] = useState<string | undefined>();
 	const [detailId, setDetailId] = useState<string | null>(null);
 	const [showSkeleton, setShowSkeleton] = useState(true);
+	const [cursorStack, setCursorStack] = useState<string[]>([]);
+	const [currentCursor, setCurrentCursor] = useState<string | undefined>();
 	const sliderRef = useRef<HTMLDivElement>(null);
 	const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
 	const { data, isLoading, isFetching, error, refetch } = useQuery(
 		orpc.meetings.list.queryOptions({
-			input: { status: status as never, limit: 50 },
+			input: { status: status as never, limit: PAGE_SIZE, cursor: currentCursor },
 		}),
 	);
 
@@ -77,7 +83,11 @@ export function MinutesList() {
 		}),
 	);
 
-	const records = (data as { data?: unknown[] })?.data ?? [];
+	const resultData = data as { data?: unknown[]; hasMore?: boolean; nextCursor?: string } | undefined;
+	const records = resultData?.data ?? [];
+	const hasMore = resultData?.hasMore ?? false;
+	const nextCursor = resultData?.nextCursor;
+	const hasPrev = cursorStack.length > 0;
 	const allRecords = (allData as { data?: unknown[] })?.data ?? [];
 
 	const counts = {
@@ -91,6 +101,22 @@ export function MinutesList() {
 		failed: allRecords.filter(
 			(r) => (r as Record<string, unknown>).status === "failed",
 		).length,
+	};
+
+	const goNext = () => {
+		if (nextCursor) {
+			setCursorStack((prev) => [...prev, currentCursor ?? ""]);
+			setCurrentCursor(nextCursor);
+			setShowSkeleton(true);
+		}
+	};
+
+	const goPrev = () => {
+		const stack = [...cursorStack];
+		const prev = stack.pop();
+		setCursorStack(stack);
+		setCurrentCursor(prev || undefined);
+		setShowSkeleton(true);
 	};
 
 	// 180ms skeleton delay — matching 3.html tab switch benchmark
@@ -117,9 +143,12 @@ export function MinutesList() {
 	});
 
 	const handleTabChange = (key: string) => {
-		if (status !== (key === "all" ? undefined : key)) {
+		const newStatus = key === "all" ? undefined : key;
+		if (status !== newStatus) {
 			setShowSkeleton(true);
-			setStatus(key === "all" ? undefined : key);
+			setStatus(newStatus);
+			setCursorStack([]);
+			setCurrentCursor(undefined);
 		}
 	};
 
@@ -220,17 +249,44 @@ export function MinutesList() {
 						: "还没有会议纪要"}
 				</div>
 			) : (
-				<div className="space-y-4">
-					{records.map((r, index) => (
-						<MinutesCard
-							key={(r as Record<string, unknown>).id as string}
-							record={r as Record<string, unknown>}
-							index={index}
-							onDetailClick={(id) => setDetailId(id)}
-							onRetry={(id) => retryMutation.mutate(id)}
-						/>
-					))}
-				</div>
+				<>
+					<div className="space-y-4">
+						{records.map((r, index) => (
+							<MinutesCard
+								key={(r as Record<string, unknown>).id as string}
+								record={r as Record<string, unknown>}
+								index={index}
+								onDetailClick={(id) => setDetailId(id)}
+								onRetry={(id) => retryMutation.mutate(id)}
+							/>
+						))}
+					</div>
+
+					{/* Pagination */}
+					<div className="flex items-center justify-center gap-4 mt-6 pt-2">
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={!hasPrev}
+							onClick={goPrev}
+							className="rounded-[10px]"
+						>
+							<ArrowLeft className="h-3.5 w-3.5 mr-1.5" />上一页
+						</Button>
+						<span className="text-xs text-slate-400">
+							{hasPrev ? "..." : "第 1 页"}
+						</span>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={!hasMore}
+							onClick={goNext}
+							className="rounded-[10px]"
+						>
+							下一页<ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+						</Button>
+					</div>
+				</>
 			)}
 
 			<MinutesDetailDialog

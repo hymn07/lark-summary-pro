@@ -43,12 +43,14 @@ export function MinutesDetailDialog({
 	const queryClient = useQueryClient();
 	const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
 	const [sourceMeetingId, setSourceMeetingId] = useState<string | null>(null);
+	const [sourceVisible, setSourceVisible] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
 	useEffect(() => {
 		if (!open) {
 			setIsSummaryExpanded(false);
 			setSourceMeetingId(null);
+			setSourceVisible(false);
 		}
 	}, [open]);
 
@@ -113,7 +115,7 @@ export function MinutesDetailDialog({
 			<div
 				role="dialog"
 				aria-modal="true"
-				className={`minutes-modal-overlay fixed inset-0 bg-slate-900/10 z-50 flex items-center justify-center p-4 ${open ? "active" : ""}`}
+				className={`minutes-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 ${open ? "active" : ""}`}
 				onClick={(e) =>
 					handleOverlayClick(e, () => onOpenChange(false))
 				}
@@ -300,11 +302,10 @@ export function MinutesDetailDialog({
 								{hasSourceMeeting && (
 									<button
 										type="button"
-										onClick={() =>
-											setSourceMeetingId(
-												feishuMeeting?.id as string,
-											)
-										}
+										onClick={() => {
+											setSourceMeetingId(feishuMeeting?.id as string);
+											setSourceVisible(true);
+										}}
 										className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-[10px] text-[11px] font-bold transition shadow-sm flex items-center"
 									>
 										查看源会议
@@ -339,15 +340,18 @@ export function MinutesDetailDialog({
 			</div>
 
 			{/* ── 源会议抽屉（复用 MeetingDetailDialog） ── */}
-			<MeetingDetailDialog
-				id={sourceMeetingId}
-				open={!!sourceMeetingId}
-				onOpenChange={(open) => {
-					if (!open) {
-						setSourceMeetingId(null);
-					}
-				}}
-			/>
+			{sourceVisible && (
+				<MeetingDetailDialog
+					id={sourceMeetingId}
+					open={!!sourceMeetingId}
+					onOpenChange={(open) => {
+						if (!open) {
+							setSourceMeetingId(null);
+							setTimeout(() => setSourceVisible(false), 400);
+						}
+					}}
+				/>
+			)}
 
 			{/* ── 删除确认 ── */}
 			{showDeleteConfirm && (

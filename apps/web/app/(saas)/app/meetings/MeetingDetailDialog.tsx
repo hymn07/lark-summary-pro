@@ -140,7 +140,7 @@ export function MeetingDetailDialog({
 		<>
 			{/* Overlay */}
 			<div
-				className={`drawer-overlay fixed inset-0 bg-slate-900/20 z-40 ${open ? "active" : ""}`}
+				className={`drawer-overlay fixed inset-0 z-40 ${open ? "active" : ""}`}
 				onClick={() => onOpenChange(false)}
 			/>
 

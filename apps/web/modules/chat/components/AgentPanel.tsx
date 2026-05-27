@@ -206,7 +206,6 @@ function ToolCallBar({
 		return null;
 	}
 
-	const doneCount = tools.filter((t) => t.status === "done").length;
 	const runningCount = tools.filter((t) => t.status === "running").length;
 	const allDone = runningCount === 0;
 
@@ -222,16 +221,8 @@ function ToolCallBar({
 				) : (
 					<Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
 				)}
-				<span className="text-gray-600">
-					{allDone
-						? `已调用 ${tools.length} 个工具`
-						: `${doneCount}/${tools.length} 完成`}
-				</span>
-				{runningCount > 0 && (
-					<span className="text-gray-400">
-						· {runningCount} 执行中
-					</span>
-				)}
+				<span className="text-gray-600">已调用 {tools.length} 个工具</span>
+				{!allDone && <span className="text-gray-400">· 执行中</span>}
 				<span className="flex-1" />
 				{open ? (
 					<ChevronDown className="w-3 h-3 text-gray-400" />
