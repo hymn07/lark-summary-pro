@@ -375,8 +375,9 @@
 .minutes-modal-overlay {
 	opacity: 0;
 	pointer-events: none;
-	backdrop-filter: blur(8px);
-	-webkit-backdrop-filter: blur(8px);
+	background-color: rgba(255, 255, 255, 0.4);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
 	transition: var(--transition-smooth);
 }
 

@@ -41,7 +41,7 @@ export function AuthWrapper({
 				{/* Logo */}
 				<div className="relative z-10 p-10">
 					<Link href="/">
-						<Logo className="brightness-0 invert" />
+						<Logo />
 					</Link>
 				</div>
 

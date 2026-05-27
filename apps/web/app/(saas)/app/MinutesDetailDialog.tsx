@@ -43,14 +43,12 @@ export function MinutesDetailDialog({
 	const queryClient = useQueryClient();
 	const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
 	const [sourceMeetingId, setSourceMeetingId] = useState<string | null>(null);
-	const [sourceVisible, setSourceVisible] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
 	useEffect(() => {
 		if (!open) {
 			setIsSummaryExpanded(false);
 			setSourceMeetingId(null);
-			setSourceVisible(false);
 		}
 	}, [open]);
 
@@ -111,7 +109,7 @@ export function MinutesDetailDialog({
 
 	return (
 		<>
-			{/* ── 会议纪要详情弹窗 (z-50) ── */}
+			{/* ── ● 会议纪要详情弹窗 (z-50) ── */}
 			<div
 				role="dialog"
 				aria-modal="true"
@@ -125,9 +123,9 @@ export function MinutesDetailDialog({
 					}
 				}}
 			>
-				<div className="minutes-modal-container bg-white border border-slate-100 w-full max-w-lg rounded-[24px] shadow-[0_32px_80px_-16px_rgba(15,23,42,0.12)] overflow-hidden flex flex-col">
+				<div className="minutes-modal-container bg-white border w-full max-w-lg rounded-[24px] overflow-hidden flex flex-col" style={{ borderColor: 'rgba(0,0,0,0.04)', boxShadow: '0 20px 40px -4px rgba(0,0,0,0.12), 0 8px 16px -4px rgba(0,0,0,0.08)' }}>
 					{/* ── Header ── */}
-					<div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+					<div className="px-6 py-3 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
 						{isLoading ? (
 							<div className="space-y-2">
 								<div className="h-5 w-48 bg-slate-100 rounded animate-pulse" />
@@ -137,7 +135,7 @@ export function MinutesDetailDialog({
 							<div className="space-y-1">
 								<div className="flex items-center space-x-2.5">
 									<FileText className="text-indigo-500 text-sm" />
-									<h3 className="text-base font-black text-slate-900 tracking-tight">
+									<h3 className="text-lg font-black text-slate-900 tracking-tight">
 										纪要不存在
 									</h3>
 								</div>
@@ -146,11 +144,11 @@ export function MinutesDetailDialog({
 							<div className="space-y-1">
 								<div className="flex items-center space-x-2.5">
 									<FileText className="text-indigo-500 text-sm" />
-									<h3 className="text-base font-black text-slate-900 tracking-tight">
+									<h3 className="text-lg font-black text-slate-900 tracking-tight">
 										{(r.topic as string) ?? "未命名会议"}
 									</h3>
 								</div>
-								<div className="flex items-center space-x-2 text-[10px] text-slate-400 font-medium ml-6">
+								<div className="flex items-center space-x-2 text-[11px] text-slate-400 font-medium ml-6">
 									<span>
 										{r.createdAt
 											? new Date(
@@ -175,9 +173,9 @@ export function MinutesDetailDialog({
 					</div>
 
 					{/* ── Body ── */}
-					<div className="p-8 bg-[#F8F9FA]">
+					<div className="px-6 pb-4 pt-0 bg-white">
 						{isLoading ? (
-							<div className="space-y-3">
+							<div className="space-y-2">
 								<div className="h-3 w-24 bg-slate-200 rounded animate-pulse" />
 								<div className="bg-white border border-slate-200/60 p-5 rounded-[16px] shadow-sm space-y-2">
 									<div className="h-3 w-full bg-slate-100 rounded animate-pulse" />
@@ -190,15 +188,14 @@ export function MinutesDetailDialog({
 								纪要数据不可用
 							</div>
 						) : (
-							<div className="space-y-3">
+							<div className="space-y-2">
 								{/* 会议纪要详情 label */}
-								<span className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center">
-									<span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2" />
-									会议纪要详情
+								<span className="block text-[13px] font-semibold text-indigo-500 mb-2 mt-3">
+									● 会议纪要详情
 								</span>
 
 								{/* Summary card */}
-								<div className="bg-white border border-slate-200/60 p-5 rounded-[16px] shadow-sm relative">
+								<div className="p-4 rounded-[14px] relative bg-slate-50/60">
 									{/* Processing state */}
 									{st === "processing" && (
 										<div className="flex items-center gap-2 text-sm text-slate-500 py-8 justify-center">
@@ -209,8 +206,8 @@ export function MinutesDetailDialog({
 
 									{/* Error message */}
 									{!!(r.errorMessage as string) && (
-										<div className="text-[13px] text-red-600 font-medium leading-relaxed">
-											<p className="font-bold text-[11px] uppercase tracking-widest mb-1">
+										<div className="text-[14px] text-red-500 leading-relaxed">
+											<p className="font-bold text-[12px] uppercase tracking-widest mb-1">
 												错误信息
 											</p>
 											{r.errorMessage as string}
@@ -219,8 +216,8 @@ export function MinutesDetailDialog({
 
 									{/* Skip reason */}
 									{!!(r.skippedReason as string) && (
-										<div className="text-[13px] text-slate-500 font-medium leading-relaxed">
-											<p className="font-bold text-[11px] uppercase tracking-widest mb-1">
+										<div className="text-[14px] text-slate-500 leading-relaxed">
+											<p className="font-bold text-[12px] uppercase tracking-widest mb-1">
 												跳过原因
 											</p>
 											{r.skippedReason as string}
@@ -231,7 +228,7 @@ export function MinutesDetailDialog({
 									{!!(r.aiSummary as string) && (
 										<>
 											<div
-												className="summary-collapse-zone text-[13px] text-slate-700 font-medium leading-relaxed overflow-hidden"
+												className="summary-collapse-zone text-[14px] text-slate-700 font-medium leading-relaxed overflow-hidden"
 												style={{
 													maxHeight: isSummaryExpanded
 														? "360px"
@@ -251,7 +248,7 @@ export function MinutesDetailDialog({
 															!isSummaryExpanded,
 														)
 													}
-													className="text-[10px] font-bold text-slate-400 hover:text-indigo-600 transition-colors flex items-center px-3 py-1 bg-[#F8F9FA] hover:bg-slate-200 rounded-full"
+													className="text-[11px] font-bold text-slate-400 hover:text-indigo-600 transition-colors flex items-center px-3 py-1 bg-[#F8F9FA] hover:bg-slate-200 rounded-full"
 												>
 													{isSummaryExpanded
 														? "收起内容"
@@ -279,7 +276,7 @@ export function MinutesDetailDialog({
 										!r.errorMessage &&
 										!r.skippedReason &&
 										st !== "processing" && (
-											<p className="text-[13px] text-slate-400 py-8 text-center">
+											<p className="text-[14px] text-slate-400 py-8 text-center">
 												暂无内容
 											</p>
 										)}
@@ -290,11 +287,11 @@ export function MinutesDetailDialog({
 
 					{/* ── Footer ── */}
 					{!isLoading && r && (
-						<div className="px-8 py-5 border-t border-slate-100 flex items-center justify-between bg-white shrink-0">
+						<div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between bg-white shrink-0">
 							<button
 								type="button"
 								onClick={() => setShowDeleteConfirm(true)}
-								className="text-[10px] font-bold text-red-400 hover:text-red-500 px-3 py-1.5 rounded-xl hover:bg-red-50/50 transition-colors flex items-center"
+								className="text-[11px] font-bold text-red-400 hover:text-red-500 px-3 py-1.5 rounded-xl hover:bg-red-50/50 transition-colors flex items-center"
 							>
 								<Trash2 className="h-3 w-3 mr-1.5" /> 删除纪要
 							</button>
@@ -302,11 +299,12 @@ export function MinutesDetailDialog({
 								{hasSourceMeeting && (
 									<button
 										type="button"
-										onClick={() => {
-											setSourceMeetingId(feishuMeeting?.id as string);
-											setSourceVisible(true);
-										}}
-										className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-[10px] text-[11px] font-bold transition shadow-sm flex items-center"
+										onClick={() =>
+											setSourceMeetingId(
+											feishuMeeting?.id as string,
+										)
+										}
+										className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-[10px] text-[12px] font-bold transition shadow-sm flex items-center"
 									>
 										查看源会议
 										<svg
@@ -327,7 +325,7 @@ export function MinutesDetailDialog({
 										href={r.docUrl as string}
 										target="_blank"
 										rel="noreferrer"
-										className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] text-[11px] font-bold transition shadow-md shadow-indigo-600/10 flex items-center"
+										className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] text-[12px] font-bold transition shadow-md shadow-indigo-600/10 flex items-center"
 									>
 										<ExternalLink className="h-3 w-3 mr-1.5" />{" "}
 										打开文档
@@ -340,18 +338,15 @@ export function MinutesDetailDialog({
 			</div>
 
 			{/* ── 源会议抽屉（复用 MeetingDetailDialog） ── */}
-			{sourceVisible && (
-				<MeetingDetailDialog
-					id={sourceMeetingId}
-					open={!!sourceMeetingId}
-					onOpenChange={(open) => {
-						if (!open) {
-							setSourceMeetingId(null);
-							setTimeout(() => setSourceVisible(false), 400);
-						}
-					}}
-				/>
-			)}
+			<MeetingDetailDialog
+				id={sourceMeetingId}
+				open={!!sourceMeetingId}
+				onOpenChange={(open) => {
+					if (!open) {
+						setSourceMeetingId(null);
+					}
+				}}
+			/>
 
 			{/* ── 删除确认 ── */}
 			{showDeleteConfirm && (

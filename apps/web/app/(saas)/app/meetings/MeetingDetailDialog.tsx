@@ -18,7 +18,7 @@ import {
 	Video,
 	X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const STATUS_ICONS = {
@@ -54,8 +54,31 @@ export function MeetingDetailDialog({
 	const [showUpload, setShowUpload] = useState(false);
 	const [uploadText, setUploadText] = useState("");
 	const [generating, setGenerating] = useState(false);
+	const [visible, setVisible] = useState(false);
+	const [showPanel, setShowPanel] = useState(false);
+
+	useEffect(() => {
+		if (open) {
+			setVisible(true);
+		} else {
+			setShowPanel(false);
+			const timer = setTimeout(() => setVisible(false), 400);
+			return () => clearTimeout(timer);
+		}
+	}, [open]);
+
+	// Trigger slide-in after mount
+	useEffect(() => {
+		if (visible) {
+			const raf = requestAnimationFrame(() => setShowPanel(true));
+			return () => cancelAnimationFrame(raf);
+		}
+	}, [visible]);
 
 	const m = data as Record<string, unknown> | null;
+	const lastM = useRef(m);
+	if (m) lastM.current = m;
+	const displayM = m ?? lastM.current;
 
 	const generateMutation = useMutation({
 		mutationFn: (meetingId: string) =>
@@ -128,25 +151,27 @@ export function MeetingDetailDialog({
 		onError: () => toast.error("删除失败"),
 	});
 
-	const records = (m?.meetingRecords as Array<Record<string, unknown>>) ?? [];
+	const records = (displayM?.meetingRecords as Array<Record<string, unknown>>) ?? [];
 	const visibleRecords = records.slice(0, 3);
 	const hiddenRecords = records.slice(3);
 	const hasMoreRecords = records.length > 3;
 
-	const transcriptText = m?.transcriptText as string | undefined;
-	const userTranscriptText = m?.userTranscriptText as string | undefined;
+	const transcriptText = displayM?.transcriptText as string | undefined;
+	const userTranscriptText = displayM?.userTranscriptText as string | undefined;
+
+	if (!visible) return null;
 
 	return (
 		<>
 			{/* Overlay */}
 			<div
-				className={`drawer-overlay fixed inset-0 z-40 ${open ? "active" : ""}`}
+				className={`drawer-overlay fixed inset-0 z-[55] ${showPanel ? "active" : ""}`}
 				onClick={() => onOpenChange(false)}
 			/>
 
 			{/* Drawer panel */}
 			<div
-				className={`drawer-panel fixed top-4 right-4 bottom-4 w-full sm:w-[560px] bg-white shadow-[0_32px_96px_-12px_rgba(15,23,42,0.14)] z-50 flex flex-col border border-slate-100 rounded-[32px] overflow-hidden ${open ? "active" : ""}`}
+				className={`drawer-panel fixed top-4 right-4 bottom-4 w-full sm:w-[560px] bg-white shadow-[0_32px_96px_-12px_rgba(15,23,42,0.14)] z-[55] flex flex-col border border-slate-100 rounded-[32px] overflow-hidden ${showPanel ? "active" : ""}`}
 			>
 				{isLoading ? (
 					<div className="p-8 space-y-4">
@@ -154,7 +179,7 @@ export function MeetingDetailDialog({
 						<Skeleton className="h-4 w-full" />
 						<Skeleton className="h-64 w-full" />
 					</div>
-				) : !m ? (
+				) : !displayM ? (
 					<div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
 						会议不存在
 					</div>
@@ -164,28 +189,28 @@ export function MeetingDetailDialog({
 						<div className="px-8 py-5 border-b border-slate-100 bg-white flex justify-between items-center shrink-0">
 							<div>
 								<h2 className="text-xl font-black text-slate-900 tracking-tight">
-									{(m.topic as string) ?? "未命名会议"}
+									{(displayM.topic as string) ?? "未命名会议"}
 								</h2>
 								<div className="flex items-center space-x-3 mt-1.5 text-[11px] text-slate-400 font-medium">
-									{m.startTime && (
+									{displayM.startTime && (
 										<span>
 											{new Date(
-												m.startTime as string,
+												displayM.startTime as string,
 											).toLocaleString("zh-CN", {
 												month: "long",
 												day: "numeric",
 												hour: "2-digit",
 												minute: "2-digit",
 											})}
-											{m.endTime &&
-												` - ${new Date(m.endTime as string).toLocaleString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`}
+											{displayM.endTime &&
+												` - ${new Date(displayM.endTime as string).toLocaleString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`}
 										</span>
 									)}
-									{m.noteDocToken && (
+									{displayM.noteDocToken && (
 										<>
 											<span>·</span>
 											<a
-												href={`https://bytedance.feishu.cn/minutes/${m.noteDocToken}`}
+												href={`https://bytedance.feishu.cn/minutes/${displayM.noteDocToken}`}
 												target="_blank"
 												rel="noreferrer"
 												className="text-indigo-600 hover:text-indigo-700 flex items-center font-bold bg-indigo-50 px-2 py-0.5 rounded-md transition-colors"
@@ -220,7 +245,7 @@ export function MeetingDetailDialog({
 										onClick={() => {
 											setGenerating(true);
 											generateMutation.mutate(
-												m.id as string,
+												displayM.id as string,
 												{
 													onSettled: () =>
 														setGenerating(false),
