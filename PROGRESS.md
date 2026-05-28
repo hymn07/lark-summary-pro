@@ -174,18 +174,44 @@
 - 白色半透明背景 rgba(255,255,255,0.4) + blur 16px，替代暗色遮罩
 - 有视觉分离但不暗沉
 
+### AI 对话记忆系统 — 2026-05-28
+
+#### 数据库
+- 4 张新表：`conversation`（会话）、`conversation_message`（消息+分类）、`memory_insight`（发现摘要）、`dimension_proposal`（新字段候选）
+- `UserSettings` 新增 `memoryAnalysisEnabled` 字段（默认 true）
+- `SystemConfig` 新增 4 个模型配置 key（model_prefilter / model_generation / model_analysis / model_agent）
+
+#### 记忆模块 packages/agent/memory/
+- **收集层（recorder.ts）**：ConversationRecorder 类，fire-and-forget 记录每条用户消息，零延迟
+- **分类层（classifier.ts）**：每天凌晨 cron 触发，20 条一批发给 LLM（Haiku）批量分类意图 + 识别未知维度
+- **发现层（discoverer.ts）**：按 fieldName 聚类 unknownFields，阈值触发（≥5条消息 或 ≥2个用户）
+  - 单用户 ≥2 次 → scope=personal 个人记忆
+  - 跨 ≥2 个用户各 ≥1 次 → scope=public 公共记忆（新用户直接受益）
+- **config.ts**：阈值配置（minEvidence=5, minUsers=2, batchSize=20）
+
+#### Agent 工具（3 个新增）
+- `queryMemoryInsights` — 查询发现的模式和 gap（支持 scope/type/status 筛选）
+- `getDimensionProposals` — 查看维度提案列表
+- `getChatMemory` — 获取当前用户的个人对话记忆和偏好
+
+#### 管理后台
+- `/app/admin/memory`：洞察总览（4 张统计卡片）+ 公共/个人维度提案列表 + 最近洞察
+
+#### API 路由
+- `GET /api/cron/memory-analysis` — 每日 cron 触发，分类 → 发现
+- `GET /api/admin/memory/insights` — 查询洞察
+- `GET /api/admin/memory/proposals` — 查询提案
+- `PATCH /api/admin/settings` — 扩展 4 个模型配置字段
+
+#### 聊天路由集成
+- `POST /api/agent/chat` — 消息发送后 fire-and-forget 调用 ConversationRecorder，不阻塞响应
+
 ## 📋 待做
 
 ### 🔴 Bug 修复
 - [ ] **飞书文档二次生成内容写入失败**：第一次生成纪要写入飞书文档正常，后续再次生成时文档创建成功、标题可见，但正文内容未写入。需排查 doc-creator 的文档更新逻辑（create vs update 路径）
 
 ### 🟡 新功能
-
-- [ ] **AI 对话记忆系统**
-  - 收集用户在 Agent 聊天中的提问偏好和模式
-  - 分析高频查询类型，发现用户关心的信息维度
-  - 反馈到结构化提取 Schema：如发现用户常问"花了多少钱"，可新增预算/费用字段
-  - 记忆存储：用户维度（每位用户独立画像）+ 增量更新
 
 - [ ] **会议待办（To-Do）提取与维护系统**
   - 结构化提取：从会议纪要中严格提取待办事项（action items）
