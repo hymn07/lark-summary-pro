@@ -148,6 +148,24 @@ export const DimensionProposalScalarFieldEnumSchema = z.enum(['id', 'fieldName',
 
 export type DimensionProposalScalarFieldEnum = z.infer<typeof DimensionProposalScalarFieldEnumSchema>;
 
+// File: NotificationScalarFieldEnum.schema.ts
+
+export const NotificationScalarFieldEnumSchema = z.enum(['id', 'userId', 'type', 'title', 'content', 'status', 'metadata', 'createdAt'])
+
+export type NotificationScalarFieldEnum = z.infer<typeof NotificationScalarFieldEnumSchema>;
+
+// File: TodoItemScalarFieldEnum.schema.ts
+
+export const TodoItemScalarFieldEnumSchema = z.enum(['id', 'userId', 'notificationId', 'task', 'owner', 'deadline', 'priority', 'status', 'blockId', 'meetingRecordId', 'confirmedAt', 'createdAt'])
+
+export type TodoItemScalarFieldEnum = z.infer<typeof TodoItemScalarFieldEnumSchema>;
+
+// File: UserTodoListScalarFieldEnum.schema.ts
+
+export const UserTodoListScalarFieldEnumSchema = z.enum(['id', 'userId', 'docUrl', 'docToken', 'updatedAt', 'createdAt'])
+
+export type UserTodoListScalarFieldEnum = z.infer<typeof UserTodoListScalarFieldEnumSchema>;
+
 // File: WaitlistEntryScalarFieldEnum.schema.ts
 
 export const WaitlistEntryScalarFieldEnumSchema = z.enum(['id', 'email', 'createdAt'])
@@ -628,6 +646,56 @@ export const DimensionProposalSchema = z.object({
 });
 
 export type DimensionProposalType = z.infer<typeof DimensionProposalSchema>;
+
+
+// File: Notification.schema.ts
+
+export const NotificationSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  type: z.string(),
+  title: z.string(),
+  content: z.string().nullish(),
+  status: z.string().default("unread"),
+  metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  createdAt: z.date(),
+});
+
+export type NotificationType = z.infer<typeof NotificationSchema>;
+
+
+// File: TodoItem.schema.ts
+
+export const TodoItemSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  notificationId: z.string().nullish(),
+  task: z.string(),
+  owner: z.string().nullish(),
+  deadline: z.string().nullish(),
+  priority: z.string().default("medium"),
+  status: z.string().default("pending"),
+  blockId: z.string().nullish(),
+  meetingRecordId: z.string().nullish(),
+  confirmedAt: z.date().nullish(),
+  createdAt: z.date(),
+});
+
+export type TodoItemType = z.infer<typeof TodoItemSchema>;
+
+
+// File: UserTodoList.schema.ts
+
+export const UserTodoListSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  docUrl: z.string().nullish(),
+  docToken: z.string().nullish(),
+  updatedAt: z.date(),
+  createdAt: z.date(),
+});
+
+export type UserTodoListType = z.infer<typeof UserTodoListSchema>;
 
 
 // File: WaitlistEntry.schema.ts
