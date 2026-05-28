@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
+import { NotificationBell } from "@saas/shared/components/NotificationBell";
 import { UserMenu } from "@saas/shared/components/UserMenu";
 import {
   FileTextIcon,

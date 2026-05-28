@@ -13,5 +13,6 @@ export { transcribeFile } from "./asr-client";
 export { startEventListener, stopEventListener } from "./event-listener";
 export { startTranscriptRetrier, stopTranscriptRetrier, generateForMeeting } from "./transcript-retrier";
 export { runMockPipeline } from "./mock-pipeline";
+export { createTodoNotification, syncTodosToDocument } from "./todo-sync";
 export * from "./config-reader";
 export * from "./types";

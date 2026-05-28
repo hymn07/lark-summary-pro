@@ -479,6 +479,53 @@ model DimensionProposal {
 }
 
 
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  content   String?  @db.Text
+  status    String   @default("unread")
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([createdAt])
+  @@map("notification")
+}
+
+model TodoItem {
+  id               String   @id @default(cuid())
+  userId           String
+  notificationId   String?
+  task             String
+  owner            String?
+  deadline         String?
+  priority         String   @default("medium")
+  status           String   @default("pending")
+  blockId          String?
+  meetingRecordId  String?
+  confirmedAt      DateTime?
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+  @@index([notificationId])
+  @@index([status])
+  @@map("todo_item")
+}
+
+model UserTodoList {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  docUrl    String?
+  docToken  String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("user_todo_list")
+}
+
 model WaitlistEntry {
   id        String   @id @default(cuid())
   email     String   @unique

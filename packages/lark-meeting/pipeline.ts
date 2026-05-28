@@ -6,6 +6,31 @@ import { runPreRoute } from "./pre-router";
 import { assemblePrompt } from "./prompt-assembler";
 import { generateMinutes } from "./llm-generator";
 import { createFeishuDoc } from "./doc-creator";
+import { createTodoNotification } from "./todo-sync";
+
+async function extractAndNotifyTodos(
+	userId: string,
+	recordId: string,
+	actionItems: Array<Record<string, unknown>>,
+	topic: string,
+): Promise<void> {
+	try {
+		const todos = actionItems.map((a) => ({
+			task: (a.task as string) ?? "",
+			owner: a.owner as string | undefined,
+			deadline: a.deadline as string | undefined,
+			priority: (a.priority as string) === "high" ? "high"
+				: (a.priority as string) === "low" ? "low"
+				: "medium",
+		})).filter((t) => t.task);
+
+		if (todos.length === 0) return;
+
+		await createTodoNotification(userId, recordId, todos, topic);
+	} catch (e) {
+		console.error("Todo extraction failed:", e);
+	}
+}
 
 // 确保向后兼容：补全旧版字段
 function normalizeMinutes(minutes: MeetingMinutes): void {
@@ -101,6 +126,13 @@ export async function generateForUser(
     // Step 6: 记录成功
     const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes);
     await createProcessingLog(record.id, "completed", "success", "纪要生成成功");
+
+    // Fire-and-forget: extract todos if any actionItems found
+    const actionItems = minutes?.actionItems as Array<Record<string, unknown>> | undefined;
+    if (actionItems?.length) {
+      void extractAndNotifyTodos(ctx.userId, record.id, actionItems, detail.topic ?? "未命名会议");
+    }
+
     return { status: "completed", meetingRecordId: record.id, docUrl };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "未知错误";
@@ -252,6 +284,10 @@ export async function handleMeetingEnded(
           const record = await createMeetingRecord(ctx, detail, "completed", docUrl, undefined, undefined, minutes);
           results.push({ status: "completed", meetingRecordId: record.id, docUrl });
           await createProcessingLog(record.id, "completed", "success", "纪要生成成功（批量）");
+          const batchItems = minutes?.actionItems as Array<Record<string, unknown>> | undefined;
+          if (batchItems?.length) {
+            void extractAndNotifyTodos(ctx.userId, record.id, batchItems, detail.topic ?? "未命名会议");
+          }
         }
       }
     } catch (error) {
@@ -313,6 +349,10 @@ export async function handleMeetingEnded(
       userLog("Step 6 完成: 纪要已保存");
 
       await createProcessingLog(record.id, "completed", "success", "纪要生成成功");
+      const indItems = minutes?.actionItems as Array<Record<string, unknown>> | undefined;
+      if (indItems?.length) {
+        void extractAndNotifyTodos(ctx.userId, record.id, indItems, detail.topic ?? "未命名会议");
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "未知错误";
       log(`处理失败: ${errorMessage}`);

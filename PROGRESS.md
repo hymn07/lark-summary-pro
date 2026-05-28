@@ -213,17 +213,30 @@
 
 ### 🟡 新功能
 
-- [ ] **会议待办（To-Do）提取与维护系统**
-  - 结构化提取：从会议纪要中严格提取待办事项（action items）
-  - 格式：负责人 + 内容 + 截止时间（如有提及）+ 优先级
-  - 维护到指定飞书文档：首次创建文档并记录 docUrl 到 DB
-  - 容错处理：文档被删 → 创建新文档并更新 DB 链接
-  - 并发安全：多场会议同时提取时，文档写入不冲突
-  - DB 设计：新增 UserTodoDoc 表（userId, docUrl, docToken, createdAt, updatedAt）
-  - ⚠️ **待讨论：写入策略**
-    - 方案 A：无感知自动写入（适合准确率稳定后）
-    - 方案 B：通知审批（系统内通知或飞书机器人推送，用户确认后写入）
-    - 倾向：先做 B（LLM 提取无法 100% 准确，给用户确认权），通知形式先系统内后再考虑飞书消息
+- [ ] **会议待办（To-Do）提取与维护系统**（设计方案已确定）
+
+  **通知系统**
+  - NavBar 右侧铃铛图标 + 未读 badge，点开通知面板
+  - 新增 Notification 表（userId, type, title, status, metadata）
+  - 支持后续其他类型通知扩展（系统通知、记忆洞察等）
+
+  **确认流程**
+  - 纪要生成后立刻发通知（一个会议一个通知，含 N 条待办）
+  - 用户逐条勾选确认，一次可确认多条
+  - 同时发飞书交互卡片消息，用户在飞书端也可确认
+  - 双端同步：飞书确认后系统自动标记完成，反之亦然
+
+  **DB 设计**
+  - `Notification` — 通知（type=todo_review|system, status=unread|read|actioned）
+  - `TodoItem` — 待办条目（task/owner/deadline/priority, status=pending|confirmed|rejected）
+  - `UserTodoList` — 用户的待办文档引用（userId, docUrl, docToken, updatedAt）
+
+  **飞书待办文档设计**
+  - 每用户一个文档 "我的会议待办"，首次创建，后续追加
+  - 按 **紧急程度（高/中/低）→ 日期** 排序，不按会议分组
+  - 文档结构：🔴高优先级 → 🟡中 → 🟢低，每个优先级内按截止日期排列
+  - 已完成的移到底部"✅ 已完成"区域
+  - 容错：文档被删→重建并更新 DB；并发：加锁/事务
 
 ### ⚪ 测试
 - [ ] 测试多 LLM provider 选择和切换
