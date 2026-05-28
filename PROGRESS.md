@@ -206,46 +206,38 @@
 #### 聊天路由集成
 - `POST /api/agent/chat` — 消息发送后 fire-and-forget 调用 ConversationRecorder，不阻塞响应
 
+### 会议待办（To-Do）提取与通知系统 — 2026-05-29
+
+#### 数据库
+- 3 张新表：`notification`（通知）、`todo_item`（待办条目）、`user_todo_list`（用户待办文档引用）
+
+#### 通知系统
+- **NotificationBell**：NavBar 右侧铃铛图标 + 未读 badge，点击展开通知面板
+- 通知面板：待办列表可展开，逐条勾选确认，支持全选/单选
+- **API**：`GET /api/notifications`（列表）、`PATCH .../[id]/read`、`POST .../[id]/confirm`
+
+#### 待办提取流程
+- pipeline 集成：纪要生成完成后自动检测 `actionItems` → fire-and-forget 创建通知
+- `todo-sync.ts`：创建通知 → 关联 TodoItem → 用户确认后同步到飞书文档
+- 文档格式：按紧急程度（🔴高→🟡中→🟢低）→日期排序，追加模式
+- 文档同步：飞书 API 新建文档 + 追加 blocks + 回读 block_id 感知用户操作
+- 容错：文档被删→重建并更新 DB；并发安全
+
 ## 📋 待做
 
 ### 🔴 Bug 修复
 - [ ] **飞书文档二次生成内容写入失败**：第一次生成纪要写入飞书文档正常，后续再次生成时文档创建成功、标题可见，但正文内容未写入。需排查 doc-creator 的文档更新逻辑（create vs update 路径）
 
-### 🟡 新功能
-
-- [ ] **会议待办（To-Do）提取与维护系统**（设计方案已确定）
-
-  **通知系统**
-  - NavBar 右侧铃铛图标 + 未读 badge，点开通知面板
-  - 新增 Notification 表（userId, type, title, status, metadata）
-  - 支持后续其他类型通知扩展（系统通知、记忆洞察等）
-
-  **确认流程**
-  - 纪要生成后立刻发通知（一个会议一个通知，含 N 条待办）
-  - 用户逐条勾选确认，一次可确认多条
-  - 同时发飞书交互卡片消息，用户在飞书端也可确认
-  - 双端同步：飞书确认后系统自动标记完成，反之亦然
-
-  **DB 设计**
-  - `Notification` — 通知（type=todo_review|system, status=unread|read|actioned）
-  - `TodoItem` — 待办条目（task/owner/deadline/priority, status=pending|confirmed|rejected）
-  - `UserTodoList` — 用户的待办文档引用（userId, docUrl, docToken, updatedAt）
-
-  **飞书待办文档设计**
-  - 每用户一个文档 "我的会议待办"，首次创建，后续追加
-  - 按 **紧急程度（高/中/低）→ 日期** 排序，不按会议分组
-  - 文档结构：🔴高优先级 → 🟡中 → 🟢低，每个优先级内按截止日期排列
-  - 已完成的移到底部"✅ 已完成"区域
-  - 容错：文档被删→重建并更新 DB；并发：加锁/事务
-
-### ⚪ 测试
-- [ ] 测试多 LLM provider 选择和切换
-- [ ] 测试 ASR 语音转文字功能（三种 adapter）
+### ⚪ 测试 & 验证
+- [ ] 飞书待办文档真机创建测试（需配置 FEISHU_APP_ID/APP_SECRET）
 - [ ] 真实飞书会议端到端测试
-- [ ] Agent 端到端验证（启动 dev → 点击浮动按钮 → 提问 → 验证工具调用和流式渲染）
+- [ ] Agent 端到端验证
+- [ ] 多 LLM provider 选择和切换测试
+- [ ] ASR 语音转文字功能测试（三种 adapter）
 
 ## ⚠️ 已知问题
 
 - 逐字稿拉取依赖飞书妙记额度
 - 用户重新登录需 prompt=consent 才能拿到新 scope
 - 飞书文档二次生成内容写入失败（见待做 Bug）
+- macOS 文件安全锁导致偶发 `Operation not permitted`（需 `sudo xattr -cr` 临时解除）
