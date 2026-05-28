@@ -16,6 +16,8 @@ import {
 	type ToolSet,
 	type UIMessage,
 } from "@repo/ai";
+import { conversationRecorder } from "@repo/agent/memory";
+import { createMemoryTools } from "@repo/agent/tools/memory-tools";
 import { getFastModel } from "@repo/lark-meeting/model-factory";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@repo/api";
 import { auth } from "@repo/auth";
@@ -30,6 +32,7 @@ function createAgentToolRegistry() {
 	registry.registerBuiltin(createSettingsTools());
 	registry.registerBuiltin(createPromptTools());
 	registry.registerBuiltin(createSystemTools());
+	registry.registerBuiltin(createMemoryTools());
 	return registry;
 }
 
@@ -70,6 +73,26 @@ export async function POST(req: Request) {
 		});
 	}
 	const userId = session.user.id;
+
+	// ── Memory: record user message (fire-and-forget) ──
+	const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+	const userText = lastUserMsg?.parts
+		?.filter((p: { type: string; text?: string }) => p.type === "text")
+		.map((p: { type: string; text?: string }) => p.text)
+		.join(" ") ?? "";
+	void (async () => {
+		try {
+			const convId = await conversationRecorder.ensureConversation(userId);
+			await conversationRecorder.recordMessage({
+				conversationId: convId,
+				role: "user",
+				content: userText,
+			});
+		} catch {
+			// silent fail — never block the chat response
+		}
+	})();
+
 	const registry = createAgentToolRegistry();
 
 	const ctx: PageContext = {

@@ -306,6 +306,7 @@ model UserSettings {
   userId                String         @unique
   user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   autoEnabled           Boolean        @default(true)
+  memoryAnalysisEnabled Boolean        @default(true)
   saveFolderToken       String?
   extraInstructions     String?
   activePromptVersionId String?
@@ -392,6 +393,91 @@ model FeishuMeeting {
   @@index([source])
   @@map("feishu_meeting")
 }
+
+model Conversation {
+  id           String                @id @default(cuid())
+  userId       String
+  title        String?
+  summary      String?               @db.Text
+  topicTags    String[]
+  messageCount Int                   @default(0)
+  totalTokens  Int?
+  status       String                @default("active")
+  metadata     Json?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  messages     ConversationMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("conversation")
+}
+
+model ConversationMessage {
+  id                String       @id @default(cuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role              String
+  content           String       @db.Text
+  intentCategory    String?
+  intentConfidence  Float?
+  referencedFields  String[]
+  unknownFields     Json?
+  referencedMeetings String[]
+  toolsUsed         String[]
+  tokenCount        Int?
+  processedAt       DateTime?
+  createdAt         DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([intentCategory])
+  @@map("conversation_message")
+}
+
+model MemoryInsight {
+  id             String       @id @default(cuid())
+  userId         String
+  type           String
+  scope          String       @default("personal")
+  title          String
+  description    String?      @db.Text
+  confidence     Float?
+  evidence       Json?
+  status         String       @default("proposed")
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([scope])
+  @@index([type, status])
+  @@map("memory_insight")
+}
+
+model DimensionProposal {
+  id            String   @id @default(cuid())
+  fieldName     String
+  displayName   String
+  description   String?  @db.Text
+  suggestedType String
+  scope         String   @default("personal")
+  userId        String?
+  exampleValues Json?
+  evidenceCount Int      @default(0)
+  uniqueUsers   Int      @default(0)
+  confidence    Float?
+  status        String   @default("pending_review")
+  implementedAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([scope])
+  @@index([status])
+  @@unique([fieldName, scope, userId])
+  @@map("dimension_proposal")
+}
+
 
 model WaitlistEntry {
   id        String   @id @default(cuid())

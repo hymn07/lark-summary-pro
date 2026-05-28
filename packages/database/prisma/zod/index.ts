@@ -96,7 +96,7 @@ export type UserModelAccessScalarFieldEnum = z.infer<typeof UserModelAccessScala
 
 // File: UserSettingsScalarFieldEnum.schema.ts
 
-export const UserSettingsScalarFieldEnumSchema = z.enum(['id', 'userId', 'autoEnabled', 'saveFolderToken', 'extraInstructions', 'activePromptVersionId', 'meetingsSyncedAt', 'createdAt', 'updatedAt'])
+export const UserSettingsScalarFieldEnumSchema = z.enum(['id', 'userId', 'autoEnabled', 'memoryAnalysisEnabled', 'saveFolderToken', 'extraInstructions', 'activePromptVersionId', 'meetingsSyncedAt', 'createdAt', 'updatedAt'])
 
 export type UserSettingsScalarFieldEnum = z.infer<typeof UserSettingsScalarFieldEnumSchema>;
 
@@ -123,6 +123,30 @@ export type SampleLearningScalarFieldEnum = z.infer<typeof SampleLearningScalarF
 export const FeishuMeetingScalarFieldEnumSchema = z.enum(['id', 'meetingId', 'meetingNo', 'topic', 'startTime', 'endTime', 'hostUserId', 'participantCount', 'participantsJson', 'transcriptText', 'transcriptFetched', 'transcriptRetryAt', 'transcriptRetryCount', 'userTranscriptText', 'docUrl', 'source', 'noteDocToken', 'meetingUrl', 'uploadedFileName', 'createdById', 'isDeleted', 'createdAt', 'updatedAt'])
 
 export type FeishuMeetingScalarFieldEnum = z.infer<typeof FeishuMeetingScalarFieldEnumSchema>;
+
+// File: ConversationScalarFieldEnum.schema.ts
+
+export const ConversationScalarFieldEnumSchema = z.enum(['id', 'userId', 'title', 'summary', 'topicTags', 'messageCount', 'totalTokens', 'status', 'metadata', 'createdAt', 'updatedAt'])
+
+export type ConversationScalarFieldEnum = z.infer<typeof ConversationScalarFieldEnumSchema>;
+
+// File: ConversationMessageScalarFieldEnum.schema.ts
+
+export const ConversationMessageScalarFieldEnumSchema = z.enum(['id', 'conversationId', 'role', 'content', 'intentCategory', 'intentConfidence', 'referencedFields', 'unknownFields', 'referencedMeetings', 'toolsUsed', 'tokenCount', 'processedAt', 'createdAt'])
+
+export type ConversationMessageScalarFieldEnum = z.infer<typeof ConversationMessageScalarFieldEnumSchema>;
+
+// File: MemoryInsightScalarFieldEnum.schema.ts
+
+export const MemoryInsightScalarFieldEnumSchema = z.enum(['id', 'userId', 'type', 'scope', 'title', 'description', 'confidence', 'evidence', 'status', 'metadata', 'createdAt', 'updatedAt'])
+
+export type MemoryInsightScalarFieldEnum = z.infer<typeof MemoryInsightScalarFieldEnumSchema>;
+
+// File: DimensionProposalScalarFieldEnum.schema.ts
+
+export const DimensionProposalScalarFieldEnumSchema = z.enum(['id', 'fieldName', 'displayName', 'description', 'suggestedType', 'scope', 'userId', 'exampleValues', 'evidenceCount', 'uniqueUsers', 'confidence', 'status', 'implementedAt', 'createdAt', 'updatedAt'])
+
+export type DimensionProposalScalarFieldEnum = z.infer<typeof DimensionProposalScalarFieldEnumSchema>;
 
 // File: WaitlistEntryScalarFieldEnum.schema.ts
 
@@ -437,6 +461,7 @@ export const UserSettingsSchema = z.object({
   id: z.string(),
   userId: z.string(),
   autoEnabled: z.boolean().default(true),
+  memoryAnalysisEnabled: z.boolean().default(true),
   saveFolderToken: z.string().nullish(),
   extraInstructions: z.string().nullish(),
   activePromptVersionId: z.string().nullish(),
@@ -520,6 +545,89 @@ export const FeishuMeetingSchema = z.object({
 });
 
 export type FeishuMeetingType = z.infer<typeof FeishuMeetingSchema>;
+
+
+// File: Conversation.schema.ts
+
+export const ConversationSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  title: z.string().nullish(),
+  summary: z.string().nullish(),
+  topicTags: z.array(z.string()),
+  messageCount: z.number().int(),
+  totalTokens: z.number().int().nullish(),
+  status: z.string().default("active"),
+  metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type ConversationType = z.infer<typeof ConversationSchema>;
+
+
+// File: ConversationMessage.schema.ts
+
+export const ConversationMessageSchema = z.object({
+  id: z.string(),
+  conversationId: z.string(),
+  role: z.string(),
+  content: z.string(),
+  intentCategory: z.string().nullish(),
+  intentConfidence: z.number().nullish(),
+  referencedFields: z.array(z.string()),
+  unknownFields: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  referencedMeetings: z.array(z.string()),
+  toolsUsed: z.array(z.string()),
+  tokenCount: z.number().int().nullish(),
+  processedAt: z.date().nullish(),
+  createdAt: z.date(),
+});
+
+export type ConversationMessageType = z.infer<typeof ConversationMessageSchema>;
+
+
+// File: MemoryInsight.schema.ts
+
+export const MemoryInsightSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  type: z.string(),
+  scope: z.string().default("personal"),
+  title: z.string(),
+  description: z.string().nullish(),
+  confidence: z.number().nullish(),
+  evidence: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  status: z.string().default("proposed"),
+  metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type MemoryInsightType = z.infer<typeof MemoryInsightSchema>;
+
+
+// File: DimensionProposal.schema.ts
+
+export const DimensionProposalSchema = z.object({
+  id: z.string(),
+  fieldName: z.string(),
+  displayName: z.string(),
+  description: z.string().nullish(),
+  suggestedType: z.string(),
+  scope: z.string().default("personal"),
+  userId: z.string().nullish(),
+  exampleValues: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  evidenceCount: z.number().int(),
+  uniqueUsers: z.number().int(),
+  confidence: z.number().nullish(),
+  status: z.string().default("pending_review"),
+  implementedAt: z.date().nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type DimensionProposalType = z.infer<typeof DimensionProposalSchema>;
 
 
 // File: WaitlistEntry.schema.ts
